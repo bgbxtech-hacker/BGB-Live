@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGB</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://content.jwplatform.com/libraries/SAHhwvZq.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        h4 {
+            display: none;
+        }
+
+        .sidebar {
+            width: 25%;
+            height: 100vh;
+            background-color: #1e1e1e;
+            overflow-y: auto;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 20px;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            top: 10px;
+            left: 20px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001; 
+            transition: left 0.3s ease;
+        }
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            background-color: #333;
+            transition: transform 0.3s ease, background-color 0.3s ease;
+            position: relative;
+        }
+
+        .sidebar a img {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        .sidebar a:hover {
+            background-color: #444;
+            transform: scale(1.05);
+        }
+
+        .badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ff5722;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .player-container {
+            margin-left: 26%;
+            padding: 20px;
+            transition: margin-left 0.3s ease, transform 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100vh - 40px);
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .player-container.fullscreen {
+            margin-left: 0;
+            width: 100%;
+            height: 100vh;
+            border-radius: 0;
+            transform: translateY(0); 
+        }
+
+        #videoPlayerDiv, #modalVideoPlayerDiv {
+            width: 100%;
+            height: 100%;
+            max-height: 90%;
+            border-radius: 10px;
+            background-color: black;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal {
+            display: none; 
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8); 
+        }
+
+        .modal-content {
+            position: relative;
+            margin: auto;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 90%;
+            max-width: 600px;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #ff5722;
+        }
+
+        /* Additional JW Player specific styles */
+        .jwplayer {
+            position: relative !important;
+        }
+
+        .jwplayer.jw-flag-aspect-mode {
+            min-height: 100%;
+            max-height: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%; 
+                height: auto; 
+                position: relative; 
+                padding: 10px;
+                transform: translateX(0);
+            }
+
+            .sidebar.hidden {
+                transform: translateX(-100%);
+            }
+
+            .sidebar-toggle {
+                left: 10px;
+            }
+            .player-container {
+                display: none;
+            }
+            .sidebar-toggle {
+                display: none;
+            }
+            h4 {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰ BGB IPTV</button>
+    <div class="sidebar">
+        <h4 style="margin-top: 20px; text-align: center; text-decoration: none;">BGB IPTV</h4>
+        <input type="text" id="searchBox" class="form-control search-box" style="margin-bottom: 5px; margin-top: 45px;" placeholder="Search channels...">
+        <div id="channelList">
+                            <a href="#" onclick="playChannel({&quot;id&quot;:87,&quot;title&quot;:&quot;NBA TV Philippines&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/d\/de\/NBA_TV_Philippines.png\/1200px-NBA_TV_Philippines.png&quot;,&quot;token&quot;:&quot;42d230&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cgnl_nba\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/d/de/NBA_TV_Philippines.png/1200px-NBA_TV_Philippines.png" alt="NBA TV Philippines">
+                    NBA TV Philippines                                            <span class="badge">Most Played</span>
+                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:93,&quot;title&quot;:&quot;CINEMA ONE&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/6\/6d\/Cinema_One_2013_logo.svg\/800px-Cinema_One_2013_logo.svg.png&quot;,&quot;token&quot;:&quot;8294bf&quot;,&quot;stream_link&quot;:&quot;https:\/\/d9rpesrrg1bdi.cloudfront.net\/out\/v1\/93b9db7b231d45f28f64f29b86dc6c65\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/6/6d/Cinema_One_2013_logo.svg/800px-Cinema_One_2013_logo.svg.png" alt="CINEMA ONE">
+                    CINEMA ONE                                            <span class="badge">Most Played</span>
+                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:2,&quot;title&quot;:&quot;TV5 HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/4\/4f\/TV5_%28Philippines%29_logo.svg\/2048px-TV5_%28Philippines%29_logo.svg.png&quot;,&quot;token&quot;:&quot;5e592d&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/tv5_hd\/default1\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/TV5_%28Philippines%29_logo.svg/2048px-TV5_%28Philippines%29_logo.svg.png" alt="TV5 HD">
+                    TV5 HD                                            <span class="badge">Most Played</span>
+                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:95,&quot;title&quot;:&quot;CINE MO!&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/2\/2b\/Cinemo_logo_vectorized.svg&quot;,&quot;token&quot;:&quot;220e7e&quot;,&quot;stream_link&quot;:&quot;https:\/\/d1bail49udbz1k.cloudfront.net\/out\/v1\/3a895f368f4a467c9bca0962559efc19\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/2/2b/Cinemo_logo_vectorized.svg" alt="CINE MO!">
+                    CINE MO!                                            <span class="badge">Most Played</span>
+        <!-- Developer credit footer -->
+        <footer style="position:fixed;bottom:6px;right:10px;color:#9e9e9e;font-size:12px;z-index:1100;">
+                Developer By BGB TECH
+        </footer>
+        </body>
+</html>
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/c/cd/PBA_Rush_logo.png/220px-PBA_Rush_logo.png" alt="PBA Rush">
+                    PBA Rush                                            <span class="badge">Most Played</span>
+                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:8,&quot;title&quot;:&quot;A2Z&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/f\/f8\/A2Z_Channel_11_Logo.png&quot;,&quot;token&quot;:&quot;afdb42&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_a2z\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/A2Z_Channel_11_Logo.png" alt="A2Z">
+                    A2Z                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:10,&quot;title&quot;:&quot;One News HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/d\/d0\/OneNewsPH_logo.svg\/800px-OneNewsPH_logo.svg.png&quot;,&quot;token&quot;:&quot;037f01&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/onenews_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/OneNewsPH_logo.svg/800px-OneNewsPH_logo.svg.png" alt="One News HD">
+                    One News HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:78,&quot;title&quot;:&quot;Premier Sports 2&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/russel\/images\/f\/f8\/Premier_Sports_Logo_2021.png&quot;,&quot;token&quot;:&quot;e70b0d&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-13-prod.akamaized.net\/out\/u\/dr_premiertennishd.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/russel/images/f/f8/Premier_Sports_Logo_2021.png" alt="Premier Sports 2">
+                    Premier Sports 2                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:70,&quot;title&quot;:&quot;Pinoy Box Office (PBO)&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/e\/e8\/Pinoy_Box_Office_logo.svg\/1200px-Pinoy_Box_Office_logo.svg.png&quot;,&quot;token&quot;:&quot;420145&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/pbo_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Pinoy_Box_Office_logo.svg/1200px-Pinoy_Box_Office_logo.svg.png" alt="Pinoy Box Office (PBO)">
+                    Pinoy Box Office (PBO)                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:29,&quot;title&quot;:&quot;One Sports+&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/9\/9c\/One_Sports_logo.svg\/768px-One_Sports_logo.svg.png&quot;,&quot;token&quot;:&quot;9eff0a&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_onesportsplus_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/One_Sports_logo.svg/768px-One_Sports_logo.svg.png" alt="One Sports+">
+                    One Sports+                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:28,&quot;title&quot;:&quot;One Sports HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/9\/9c\/One_Sports_logo.svg\/768px-One_Sports_logo.svg.png&quot;,&quot;token&quot;:&quot;65f9ba&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_onesports_hd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/One_Sports_logo.svg/768px-One_Sports_logo.svg.png" alt="One Sports HD">
+                    One Sports HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:9,&quot;title&quot;:&quot;One PH&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/d\/d0\/OneNewsPH_logo.svg\/1167px-OneNewsPH_logo.svg.png&quot;,&quot;token&quot;:&quot;d8fb4d&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/oneph_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/OneNewsPH_logo.svg/1167px-OneNewsPH_logo.svg.png" alt="One PH">
+                    One PH                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:91,&quot;title&quot;:&quot;Nick Jr&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/c\/c5\/Nick_Jr._logo_2023_%28outline%29.svg\/960px-Nick_Jr._logo_2023_%28outline%29.svg.png&quot;,&quot;token&quot;:&quot;604211&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_nickjr\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Nick_Jr._logo_2023_%28outline%29.svg/960px-Nick_Jr._logo_2023_%28outline%29.svg.png" alt="Nick Jr">
+                    Nick Jr                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:52,&quot;title&quot;:&quot;Nickelodeon SD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/e\/e5\/Nickelodeon_2023_logo_%28outline%29.svg\/768px-Nickelodeon_2023_logo_%28outline%29.svg.png&quot;,&quot;token&quot;:&quot;2d16ff&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_nickelodeon\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Nickelodeon_2023_logo_%28outline%29.svg/768px-Nickelodeon_2023_logo_%28outline%29.svg.png" alt="Nickelodeon SD">
+                    Nickelodeon SD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:6,&quot;title&quot;:&quot;PTV 4&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/f\/f9\/PTV_4_Para_Sa_Bayan_Logo_June_2017.svg\/800px-PTV_4_Para_Sa_Bayan_Logo_June_2017.svg.png&quot;,&quot;token&quot;:&quot;f018b7&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_ptv4_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/f/f9/PTV_4_Para_Sa_Bayan_Logo_June_2017.svg/800px-PTV_4_Para_Sa_Bayan_Logo_June_2017.svg.png" alt="PTV 4">
+                    PTV 4                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:68,&quot;title&quot;:&quot;NHK World Japan&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/7\/7b\/NHK_World.svg\/300px-NHK_World.svg.png&quot;,&quot;token&quot;:&quot;b02f03&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_nhk_japan\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/NHK_World.svg/300px-NHK_World.svg.png" alt="NHK World Japan">
+                    NHK World Japan                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:105,&quot;title&quot;:&quot;National Geographic&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/f\/fc\/Natgeologo.svg\/960px-Natgeologo.svg.png&quot;,&quot;token&quot;:&quot;dd92e8&quot;,&quot;stream_link&quot;:&quot;https:\/\/v4-vno-j13-cdn-01.live.cdn.cgates.lt\/live\/dash\/561901\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Natgeologo.svg/960px-Natgeologo.svg.png" alt="National Geographic">
+                    National Geographic                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:113,&quot;title&quot;:&quot;NAT GEO WILD&quot;,&quot;logo&quot;:null,&quot;token&quot;:&quot;dd92a8&quot;,&quot;stream_link&quot;:&quot;https:\/\/uselector.cdn.intigral-ott.net\/NHD\/NHD.isml\/manifest.mpd&quot;}); return false;">
+                    <img src="" alt="NAT GEO WILD">
+                    NAT GEO WILD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:90,&quot;title&quot;:&quot;MYX&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/0\/0f\/Myxphlogo.svg\/1200px-Myxphlogo.svg.png&quot;,&quot;token&quot;:&quot;b446aa&quot;,&quot;stream_link&quot;:&quot;https:\/\/d24xfhmhdb6r0q.cloudfront.net\/out\/v1\/e897a7b6414a46019818ee9f2c081c4f\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Myxphlogo.svg/1200px-Myxphlogo.svg.png" alt="MYX">
+                    MYX                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:31,&quot;title&quot;:&quot;MPTV&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/russel\/images\/8\/8d\/MPTV_Logo_2023.png&quot;,&quot;token&quot;:&quot;2638a1&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_mptv\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/russel/images/8/8d/MPTV_Logo_2023.png" alt="MPTV">
+                    MPTV                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:104,&quot;title&quot;:&quot;Moviesphere&quot;,&quot;logo&quot;:&quot;https:\/\/images-cdn2.welcomesoftware.com\/assets\/Moviesphere-hero.png\/Zz0zZmZmOWIxMmExNGUxMWVmYTUwY2FlYmM1NTY3YTAzZA==?width=768&amp;amp;height=430&quot;,&quot;token&quot;:&quot;ab48fc&quot;,&quot;stream_link&quot;:&quot;https:\/\/moviesphereuk-samsunguk.amagi.tv\/360p-vtt\/index.m3u8&quot;}); return false;">
+                    <img src="https://images-cdn2.welcomesoftware.com/assets/Moviesphere-hero.png/Zz0zZmZmOWIxMmExNGUxMWVmYTUwY2FlYmM1NTY3YTAzZA==?width=768&amp;height=430" alt="Moviesphere">
+                    Moviesphere                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:74,&quot;title&quot;:&quot;Lotus Macau&quot;,&quot;logo&quot;:&quot;https:\/\/cms.cignal.tv\/Upload\/Thumbnails\/mo-macau-lotus-tv-3757.png&quot;,&quot;token&quot;:&quot;ce297f&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-07-prod.akamaized.net\/out\/u\/lotusmacau_prd.mpd&quot;}); return false;">
+                    <img src="https://cms.cignal.tv/Upload/Thumbnails/mo-macau-lotus-tv-3757.png" alt="Lotus Macau">
+                    Lotus Macau                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:71,&quot;title&quot;:&quot;Premier Sports HD&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/russel\/images\/f\/f8\/Premier_Sports_Logo_2021.png&quot;,&quot;token&quot;:&quot;b042bc&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_ps_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/russel/images/f/f8/Premier_Sports_Logo_2021.png" alt="Premier Sports HD">
+                    Premier Sports HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:12,&quot;title&quot;:&quot;Sari-Sari&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/2\/22\/Sari-Sari_Channel_logo.png&quot;,&quot;token&quot;:&quot;eacc06&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_sarisari\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/2/22/Sari-Sari_Channel_logo.png" alt="Sari-Sari">
+                    Sari-Sari                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:75,&quot;title&quot;:&quot;Rock Entertainment&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/9\/94\/Rock_Entertainment.png\/435px-Rock_Entertainment.png&quot;,&quot;token&quot;:&quot;e46c82&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_rockentertainment\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Rock_Entertainment.png/435px-Rock_Entertainment.png" alt="Rock Entertainment">
+                    Rock Entertainment                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:83,&quot;title&quot;:&quot;Tap TV&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/9\/94\/TapTV-ph.png&quot;,&quot;token&quot;:&quot;0eb428&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_taptv_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/9/94/TapTV-ph.png" alt="Tap TV">
+                    Tap TV                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:69,&quot;title&quot;:&quot;Viva Cinema&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/logopedia\/images\/0\/07\/Viva_Cinema_2021.png&quot;,&quot;token&quot;:&quot;9d95a4&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/viva_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/logopedia/images/0/07/Viva_Cinema_2021.png" alt="Viva Cinema">
+                    Viva Cinema                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:30,&quot;title&quot;:&quot;UAAP Varsity Channel&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/6\/6f\/Uaapvarsitychannel.png&quot;,&quot;token&quot;:&quot;d5921d&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_uaap_cplay_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/6/6f/Uaapvarsitychannel.png" alt="UAAP Varsity Channel">
+                    UAAP Varsity Channel                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:84,&quot;title&quot;:&quot;TVUP&quot;,&quot;logo&quot;:&quot;https:\/\/i0.wp.com\/up.edu.ph\/wp-content\/uploads\/2017\/05\/logo-image2.png&quot;,&quot;token&quot;:&quot;eb56a5&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/tvup_prd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://i0.wp.com/up.edu.ph/wp-content/uploads/2017/05/logo-image2.png" alt="TVUP">
+                    TVUP                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:54,&quot;title&quot;:&quot;tvN Premium HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/6\/67\/Logo_tvN.svg\/375px-Logo_tvN.svg.png&quot;,&quot;token&quot;:&quot;a7ab18&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_tvnpre\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Logo_tvN.svg/375px-Logo_tvN.svg.png" alt="tvN Premium HD">
+                    tvN Premium HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:47,&quot;title&quot;:&quot;tvN Movies Pinoy&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/logopedia\/images\/9\/94\/TvN_Movies_Pinoy_2023_Logo.svg&quot;,&quot;token&quot;:&quot;28000e&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_tvnmovie\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/logopedia/images/9/94/TvN_Movies_Pinoy_2023_Logo.svg" alt="tvN Movies Pinoy">
+                    tvN Movies Pinoy                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:19,&quot;title&quot;:&quot;True FM TV&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/4\/40\/Radyo5truefmlogo.webp\/640px-Radyo5truefmlogo.webp.png&quot;,&quot;token&quot;:&quot;66f7cb&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/truefm_tv\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/40/Radyo5truefmlogo.webp/640px-Radyo5truefmlogo.webp.png" alt="True FM TV">
+                    True FM TV                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:107,&quot;title&quot;:&quot;Travel Channel&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/8\/8a\/2018_Travel_Channel_logo.svg\/640px-2018_Travel_Channel_logo.svg.png&quot;,&quot;token&quot;:&quot;8e32b5&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/travel_channel_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/2018_Travel_Channel_logo.svg/640px-2018_Travel_Channel_logo.svg.png" alt="Travel Channel">
+                    Travel Channel                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:89,&quot;title&quot;:&quot;Teleradyo Serbisyo&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/archive\/2\/2e\/20231130051829%21TeleRadyo_Serbisyo_logo.svg&quot;,&quot;token&quot;:&quot;69650a&quot;,&quot;stream_link&quot;:&quot;https:\/\/cdn-ue1-prod.tsv2.amagi.tv\/linear\/amg01006-abs-cbn-teleradyo-dash-abscbnono\/7af1d96f-ee57-4d28-874e-87435c705980\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/archive/2/2e/20231130051829%21TeleRadyo_Serbisyo_logo.svg" alt="Teleradyo Serbisyo">
+                    Teleradyo Serbisyo                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:108,&quot;title&quot;:&quot;TAP Sports&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/6\/6e\/TAP_Sports_channel_logo.png&quot;,&quot;token&quot;:&quot;8e2221&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_tapsports\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/6/6e/TAP_Sports_channel_logo.png" alt="TAP Sports">
+                    TAP Sports                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:3,&quot;title&quot;:&quot;RPTV HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/5\/5b\/RPTV_%282024%29.svg&quot;,&quot;token&quot;:&quot;bcd100&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cnn_rptv_prod_hd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/RPTV_%282024%29.svg" alt="RPTV HD">
+                    RPTV HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:81,&quot;title&quot;:&quot;TAP Movies HD&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/russel\/images\/c\/cb\/TAP_Movies_Logo_2021.png&quot;,&quot;token&quot;:&quot;c009fa&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_tapmovies_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/russel/images/c/cb/TAP_Movies_Logo_2021.png" alt="TAP Movies HD">
+                    TAP Movies HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:60,&quot;title&quot;:&quot;Tap Edge&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/russel\/images\/5\/57\/TAP_Edge_Logo_November_2020.png&quot;,&quot;token&quot;:&quot;50d48f&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-12-prod.akamaized.net\/out\/u\/dr_tapedge.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/russel/images/5/57/TAP_Edge_Logo_November_2020.png" alt="Tap Edge">
+                    Tap Edge                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:82,&quot;title&quot;:&quot;Tap Action Flix Movies&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/logopedia\/images\/8\/88\/TAP_ActionFlix_logo.png&quot;,&quot;token&quot;:&quot;7b7949&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_tapactionflix_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/logopedia/images/8/88/TAP_ActionFlix_logo.png" alt="Tap Action Flix Movies">
+                    Tap Action Flix Movies                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:73,&quot;title&quot;:&quot;Tagalog Movie Channel (TMC)&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/2\/27\/Tmc2021logo.png&quot;,&quot;token&quot;:&quot;1cbcac&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_tagalogmovie\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/2/27/Tmc2021logo.png" alt="Tagalog Movie Channel (TMC)">
+                    Tagalog Movie Channel (TMC)                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:85,&quot;title&quot;:&quot;SPOTV HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/2\/25\/SPOTV_logo.svg\/1200px-SPOTV_logo.svg.png&quot;,&quot;token&quot;:&quot;f38b24&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_spotvhd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/SPOTV_logo.svg/1200px-SPOTV_logo.svg.png" alt="SPOTV HD">
+                    SPOTV HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:86,&quot;title&quot;:&quot;SPOTV 2 HD&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/logopedia\/images\/6\/68\/SPOTV2_logo_2018.png&quot;,&quot;token&quot;:&quot;79a8a5&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_spotv2hd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/logopedia/images/6/68/SPOTV2_logo_2018.png" alt="SPOTV 2 HD">
+                    SPOTV 2 HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:106,&quot;title&quot;:&quot;Sony Cine&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/logopedia\/images\/f\/fb\/Sony_Cine_2021_Logo.png&quot;,&quot;token&quot;:&quot;34a5d6&quot;,&quot;stream_link&quot;:&quot;https:\/\/a-cdn.klowdtv.com\/live1\/cine_720p\/chunks.m3u8&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/logopedia/images/f/fb/Sony_Cine_2021_Logo.png" alt="Sony Cine">
+                    Sony Cine                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:32,&quot;title&quot;:&quot;Knowledge Channel&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/d\/d3\/Knowledge_Channel_logo.png&quot;,&quot;token&quot;:&quot;d57460&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/knowledge_channel\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d3/Knowledge_Channel_logo.png" alt="Knowledge Channel">
+                    Knowledge Channel                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:59,&quot;title&quot;:&quot;Lifetime SD&quot;,&quot;logo&quot;:&quot;https:\/\/logowik.com\/content\/uploads\/images\/lifetime-tv-new-20202036.jpg&quot;,&quot;token&quot;:&quot;a1a5e6&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_lifetime\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://logowik.com/content/uploads/images/lifetime-tv-new-20202036.jpg" alt="Lifetime SD">
+                    Lifetime SD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:1,&quot;title&quot;:&quot;Kapamilya Channel&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/russel\/images\/2\/29\/Kapamilya_Channel_3D_Logo_2020.png&quot;,&quot;token&quot;:&quot;66b6a5&quot;,&quot;stream_link&quot;:&quot;https:\/\/cdn-ue1-prod.tsv2.amagi.tv\/linear\/amg01006-abs-cbn-kapcha-dash-abscbnono\/9ebd127f-c76f-47ca-a86a-20157a37b65a\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/russel/images/2/29/Kapamilya_Channel_3D_Logo_2020.png" alt="Kapamilya Channel">
+                    Kapamilya Channel                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:55,&quot;title&quot;:&quot;KBS World SD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/1\/1b\/KBS_World_%282009%29.svg\/1200px-KBS_World_%282009%29.svg.png&quot;,&quot;token&quot;:&quot;52b753&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/kbsworld\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/KBS_World_%282009%29.svg/1200px-KBS_World_%282009%29.svg.png" alt="KBS World SD">
+                    KBS World SD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:77,&quot;title&quot;:&quot;BBC News&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/a\/a2\/BBC_News_2022_%28Alt%29.svg\/640px-BBC_News_2022_%28Alt%29.svg.png&quot;,&quot;token&quot;:&quot;40d692&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/bbcworld_news_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/BBC_News_2022_%28Alt%29.svg/640px-BBC_News_2022_%28Alt%29.svg.png" alt="BBC News">
+                    BBC News                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:45,&quot;title&quot;:&quot;Cinemax HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/f\/f0\/611-cinemax.png&quot;,&quot;token&quot;:&quot;14567b&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_cinemax\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/611-cinemax.png" alt="Cinemax HD">
+                    Cinemax HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:67,&quot;title&quot;:&quot;CGTN&quot;,&quot;logo&quot;:&quot;https:\/\/ui.cgtn.com\/static\/ng\/resource\/images\/logo_title.png&quot;,&quot;token&quot;:&quot;d08ba0&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-11-prod.akamaized.net\/out\/u\/dr_cgtn.mpd&quot;}); return false;">
+                    <img src="https://ui.cgtn.com/static/ng/resource/images/logo_title.png" alt="CGTN">
+                    CGTN                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:98,&quot;title&quot;:&quot;Celestial Movies Pinoy&quot;,&quot;logo&quot;:&quot;https:\/\/scontent.fceb6-1.fna.fbcdn.net\/v\/t39.30808-6\/305764493_476556937813865_3812090384144915110_n.png?_nc_cat=107&amp;amp;amp;amp;ccb=1-7&amp;amp;amp;amp;_nc_sid=6ee11a&amp;amp;amp;amp;_nc_eui2=AeHLsWsV_14gyuAclVtnOQfInvbMczuB19me9sxzO4HX2R3v5hElyEZYeXOe4SUMryE&amp;amp;amp;amp;_nc_ohc=fOXqFAT1-zsQ7kNvwFfwaYv&amp;amp;amp;amp;_nc_oc=AdkZnwRn2ysqkGsRp7yvXawdaUYpwqxL2kburUfKEb2fLrfXaLD9v-YKIsyOLaeVTw4&amp;amp;amp;amp;_nc_zt=23&amp;amp;amp;amp;_nc_ht=scontent.fceb6-1.fna&amp;amp;amp;amp;_nc_gid=B8zjLdPhmvlBxVyuUp5R7A&amp;amp;amp;amp&quot;,&quot;token&quot;:&quot;770892&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/celmovie_pinoy_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://scontent.fceb6-1.fna.fbcdn.net/v/t39.30808-6/305764493_476556937813865_3812090384144915110_n.png?_nc_cat=107&amp;amp;amp;ccb=1-7&amp;amp;amp;_nc_sid=6ee11a&amp;amp;amp;_nc_eui2=AeHLsWsV_14gyuAclVtnOQfInvbMczuB19me9sxzO4HX2R3v5hElyEZYeXOe4SUMryE&amp;amp;amp;_nc_ohc=fOXqFAT1-zsQ7kNvwFfwaYv&amp;amp;amp;_nc_oc=AdkZnwRn2ysqkGsRp7yvXawdaUYpwqxL2kburUfKEb2fLrfXaLD9v-YKIsyOLaeVTw4&amp;amp;amp;_nc_zt=23&amp;amp;amp;_nc_ht=scontent.fceb6-1.fna&amp;amp;amp;_nc_gid=B8zjLdPhmvlBxVyuUp5R7A&amp;amp;amp" alt="Celestial Movies Pinoy">
+                    Celestial Movies Pinoy                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:39,&quot;title&quot;:&quot;CCTV 4&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/0\/08\/CCTV-4_channel.svg&quot;,&quot;token&quot;:&quot;36b8e0&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_cctv4\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/0/08/CCTV-4_channel.svg" alt="CCTV 4">
+                    CCTV 4                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:96,&quot;title&quot;:&quot;Cartoon Network&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/8\/80\/Cartoon_Network_2010_logo.svg&quot;,&quot;token&quot;:&quot;d425e0&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cartoonnetworkhd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/8/80/Cartoon_Network_2010_logo.svg" alt="Cartoon Network">
+                    Cartoon Network                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:11,&quot;title&quot;:&quot;Buko&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/c\/c0\/BuKo_Buhay_Komedya_Logo.jpg&quot;,&quot;token&quot;:&quot;68a9dc&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_buko_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/c/c0/BuKo_Buhay_Komedya_Logo.jpg" alt="Buko">
+                    Buko                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:36,&quot;title&quot;:&quot;Bloomberg&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/5\/5d\/New_Bloomberg_Logo.svg\/768px-New_Bloomberg_Logo.svg.png&quot;,&quot;token&quot;:&quot;399b56&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/bloomberg_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/New_Bloomberg_Logo.svg/768px-New_Bloomberg_Logo.svg.png" alt="Bloomberg">
+                    Bloomberg                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:102,&quot;title&quot;:&quot;Bilyonaryo&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/tv-philippines\/images\/c\/ce\/BilyonaryoNewsChannel_Logo_-_Black_%282024%29.png&quot;,&quot;token&quot;:&quot;c73903&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/bilyonaryoch\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/tv-philippines/images/c/ce/BilyonaryoNewsChannel_Logo_-_Black_%282024%29.png" alt="Bilyonaryo">
+                    Bilyonaryo                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:79,&quot;title&quot;:&quot;BBC Earth HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/7\/7e\/BBC_Earth_2023.svg&quot;,&quot;token&quot;:&quot;287e80&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_bbcearth_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/BBC_Earth_2023.svg" alt="BBC Earth HD">
+                    BBC Earth HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:38,&quot;title&quot;:&quot;CNN HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/f\/fb\/Cnn_logo_red_background.png&quot;,&quot;token&quot;:&quot;5d3c60&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_cnnhd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fb/Cnn_logo_red_background.png" alt="CNN HD">
+                    CNN HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:56,&quot;title&quot;:&quot;AXN&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/a\/a0\/AXN_logo.svg\/395px-AXN_logo.svg.png&quot;,&quot;token&quot;:&quot;3a9151&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_axn_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/AXN_logo.svg/395px-AXN_logo.svg.png" alt="AXN">
+                    AXN                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:76,&quot;title&quot;:&quot;Asian Food Network&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/e\/e9\/Asian_Food_Network.svg&quot;,&quot;token&quot;:&quot;914286&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-07-prod.akamaized.net\/out\/u\/asianfoodnetwork_sd.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Asian_Food_Network.svg" alt="Asian Food Network">
+                    Asian Food Network                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:65,&quot;title&quot;:&quot;Arirang&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/6\/64\/Arirang_logo.png&quot;,&quot;token&quot;:&quot;2db83c&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-01-prod.akamaized.net\/out\/u\/arirang_sd.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Arirang_logo.png" alt="Arirang">
+                    Arirang                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:48,&quot;title&quot;:&quot;Animax&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/2\/2b\/Animax_logo.svg\/1200px-Animax_logo.svg.png&quot;,&quot;token&quot;:&quot;75bff5&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_animax_sd_new\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Animax_logo.svg/1200px-Animax_logo.svg.png" alt="Animax">
+                    Animax                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:80,&quot;title&quot;:&quot;Animal Planet&quot;,&quot;logo&quot;:&quot;https:\/\/d3faj0w6aqatyx.cloudfront.net\/uploads\/2018\/10\/25115647\/AnimalPlanet_Vertical_OneLineLarge_RGB-002.jpg&quot;,&quot;token&quot;:&quot;ea4c0a&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-02-prod.akamaized.net\/out\/u\/cg_animal_planet_sd.mpd&quot;}); return false;">
+                    <img src="https://d3faj0w6aqatyx.cloudfront.net/uploads/2018/10/25115647/AnimalPlanet_Vertical_OneLineLarge_RGB-002.jpg" alt="Animal Planet">
+                    Animal Planet                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:94,&quot;title&quot;:&quot;ANC&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/abscbn\/images\/a\/a6\/ANC_%282015%29.svg&quot;,&quot;token&quot;:&quot;d32961&quot;,&quot;stream_link&quot;:&quot;https:\/\/cdn-ue1-prod.tsv2.amagi.tv\/linear\/amg01006-abs-cbn-anc-global-dash-abscbnono\/2a520112-5ff2-4a2e-9f13-762c62127b58\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/abscbn/images/a/a6/ANC_%282015%29.svg" alt="ANC">
+                    ANC                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:109,&quot;title&quot;:&quot;AMC&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/1\/1d\/Amc_logo.svg\/2560px-Amc_logo.svg.png&quot;,&quot;token&quot;:&quot;2db22c&quot;,&quot;stream_link&quot;:&quot;https:\/\/5def33c73f084e11a19ca77697d6b413.mediatailor.us-east-1.amazonaws.com\/v1\/manifest\/44f73ba4d03e9607dcd9bebdcb8494d86964f1d8\/\/Plex_AMCPresents\/216bee0d-1060-4ea2-b595-e6ebabde2d1c\/2.m3u8&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Amc_logo.svg/2560px-Amc_logo.svg.png" alt="AMC">
+                    AMC                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:35,&quot;title&quot;:&quot;Al Jazeera&quot;,&quot;logo&quot;:&quot;https:\/\/logowik.com\/content\/uploads\/images\/al-jazeera-tv6503.jpg&quot;,&quot;token&quot;:&quot;759ffd&quot;,&quot;stream_link&quot;:&quot;https:\/\/live-hls-web-aje.getaj.net\/AJE\/index.m3u8&quot;}); return false;">
+                    <img src="https://logowik.com/content/uploads/images/al-jazeera-tv6503.jpg" alt="Al Jazeera">
+                    Al Jazeera                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:37,&quot;title&quot;:&quot;CNA&quot;,&quot;logo&quot;:&quot;https:\/\/logowik.com\/content\/uploads\/images\/cna-channel-news-asia9392.jpg&quot;,&quot;token&quot;:&quot;1ce910&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/channelnewsasia\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://logowik.com/content/uploads/images/cna-channel-news-asia9392.jpg" alt="CNA">
+                    CNA                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:110,&quot;title&quot;:&quot;Crime Investigation&quot;,&quot;logo&quot;:null,&quot;token&quot;:&quot;231233&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/crime_invest\/default\/index.mpd&quot;}); return false;">
+                    <img src="" alt="Crime Investigation">
+                    Crime Investigation                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:64,&quot;title&quot;:&quot;ABC Australia&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/5\/57\/ABC_Australia_logo.svg&quot;,&quot;token&quot;:&quot;598a87&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-10-prod.akamaized.net\/out\/u\/dr_abc_aus.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/5/57/ABC_Australia_logo.svg" alt="ABC Australia">
+                    ABC Australia                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:43,&quot;title&quot;:&quot;HBO Hits HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/f\/fc\/HBOHits-ASIA.png&quot;,&quot;token&quot;:&quot;6500e2&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hbohits\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/f/fc/HBOHits-ASIA.png" alt="HBO Hits HD">
+                    HBO Hits HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:103,&quot;title&quot;:&quot;Jeepney TV&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/1\/15\/Jeepney_TV_Logo_2015.svg\/1200px-Jeepney_TV_Logo_2015.svg.png&quot;,&quot;token&quot;:&quot;ba0fad&quot;,&quot;stream_link&quot;:&quot;https:\/\/jeepney.fflame143.workers.dev\/master.m3u8&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/1/15/Jeepney_TV_Logo_2015.svg/1200px-Jeepney_TV_Logo_2015.svg.png" alt="Jeepney TV">
+                    Jeepney TV                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:7,&quot;title&quot;:&quot;IBC 13&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/4\/4f\/IBC_13_Logo_2011.svg\/1200px-IBC_13_Logo_2011.svg.png&quot;,&quot;token&quot;:&quot;851398&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/ibc13_sd_new\/default1\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/4f/IBC_13_Logo_2011.svg/1200px-IBC_13_Logo_2011.svg.png" alt="IBC 13">
+                    IBC 13                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:58,&quot;title&quot;:&quot;HITS Now&quot;,&quot;logo&quot;:&quot;https:\/\/cms.cignal.tv\/Upload\/Images\/Hits%20Now.png&quot;,&quot;token&quot;:&quot;62a80b&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hitsnow\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://cms.cignal.tv/Upload/Images/Hits%20Now.png" alt="HITS Now">
+                    HITS Now                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:46,&quot;title&quot;:&quot;HITS Movies&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/logopedia\/images\/4\/4a\/HITS_MOVIES_ASIA.png&quot;,&quot;token&quot;:&quot;35f744&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-12-prod.akamaized.net\/out\/u\/dr_hitsmovies.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/logopedia/images/4/4a/HITS_MOVIES_ASIA.png" alt="HITS Movies">
+                    HITS Movies                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:57,&quot;title&quot;:&quot;Hits HD&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/logopedia\/images\/e\/e9\/Hits_%28Southeast_Asia%29.svg&quot;,&quot;token&quot;:&quot;5b13b1&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/hits_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/logopedia/images/e/e9/Hits_%28Southeast_Asia%29.svg" alt="Hits HD">
+                    Hits HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:66,&quot;title&quot;:&quot;History HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/3\/32\/History_HD_Logo.svg\/2560px-History_HD_Logo.svg.png&quot;,&quot;token&quot;:&quot;07c58f&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_historyhd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/History_HD_Logo.svg/2560px-History_HD_Logo.svg.png" alt="History HD">
+                    History HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:61,&quot;title&quot;:&quot;HGTV HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/a\/a8\/HGTV_2010.svg&quot;,&quot;token&quot;:&quot;122eb0&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/hgtv_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/a/a8/HGTV_2010.svg" alt="HGTV HD">
+                    HGTV HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:42,&quot;title&quot;:&quot;HBO Signature HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/9\/9e\/HBO_Signature.svg\/2560px-HBO_Signature.svg.png&quot;,&quot;token&quot;:&quot;cd39e8&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hbosign\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/HBO_Signature.svg/2560px-HBO_Signature.svg.png" alt="HBO Signature HD">
+                    HBO Signature HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:41,&quot;title&quot;:&quot;HBO HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/4\/4a\/HBO_HD.png&quot;,&quot;token&quot;:&quot;dac49f&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hbohd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/HBO_HD.png" alt="HBO HD">
+                    HBO HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:33,&quot;title&quot;:&quot;DepEd TV&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/4\/4a\/Depedtvlogo.png&quot;,&quot;token&quot;:&quot;1cd709&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/depedch_sd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Depedtvlogo.png" alt="DepEd TV">
+                    DepEd TV                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:44,&quot;title&quot;:&quot;HBO Family HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/d\/d2\/HBO_Family_Asia_logo.svg\/300px-HBO_Family_Asia_logo.svg.png&quot;,&quot;token&quot;:&quot;2afdc5&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hbofam\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d2/HBO_Family_Asia_logo.svg/300px-HBO_Family_Asia_logo.svg.png" alt="HBO Family HD">
+                    HBO Family HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:40,&quot;title&quot;:&quot;France 24&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/6\/65\/FRANCE_24_logo.svg\/800px-FRANCE_24_logo.svg.png&quot;,&quot;token&quot;:&quot;8bddd2&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-11-prod.akamaized.net\/out\/u\/dr_france24.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/6/65/FRANCE_24_logo.svg/800px-FRANCE_24_logo.svg.png" alt="France 24">
+                    France 24                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:62,&quot;title&quot;:&quot;Food Network HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/0\/06\/Food_Network_logo.svg\/1200px-Food_Network_logo.svg.png&quot;,&quot;token&quot;:&quot;ea674f&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_foodnetwork_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Food_Network_logo.svg/1200px-Food_Network_logo.svg.png" alt="Food Network HD">
+                    Food Network HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:63,&quot;title&quot;:&quot;Fashion TV HD&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/7\/7a\/Fashion_TV_logo.svg&quot;,&quot;token&quot;:&quot;ebb031&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/fashiontvhd\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Fashion_TV_logo.svg" alt="Fashion TV HD">
+                    Fashion TV HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:49,&quot;title&quot;:&quot;DreamWorks HD&quot;,&quot;logo&quot;:&quot;https:\/\/cms.cignal.tv\/Upload\/Images\/Dream-Works.jpg&quot;,&quot;token&quot;:&quot;217169&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_dreamworks_hd1\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://cms.cignal.tv/Upload/Images/Dream-Works.jpg" alt="DreamWorks HD">
+                    DreamWorks HD                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:50,&quot;title&quot;:&quot;DreamWorks (Tagalized)&quot;,&quot;logo&quot;:&quot;https:\/\/cms.cignal.tv\/Upload\/Images\/Dream-Works.jpg&quot;,&quot;token&quot;:&quot;583bac&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_dreamworktag\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://cms.cignal.tv/Upload/Images/Dream-Works.jpg" alt="DreamWorks (Tagalized)">
+                    DreamWorks (Tagalized)                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:100,&quot;title&quot;:&quot;Disney Channel&quot;,&quot;logo&quot;:&quot;https:\/\/www.hollywoodreporter.com\/wp-content\/uploads\/2014\/05\/disney_channel_logo_a_l.jpg&quot;,&quot;token&quot;:&quot;4e4595&quot;,&quot;stream_link&quot;:&quot;https:\/\/pop1e3.cdn.intigral-ott.net\/bpk-token\/1ai@cvcasgaxkai0qw1v33gjtfaenqivaqubcpfwsaca\/DIS\/DIS.isml\/manifest.mpd&quot;}); return false;">
+                    <img src="https://www.hollywoodreporter.com/wp-content/uploads/2014/05/disney_channel_logo_a_l.jpg" alt="Disney Channel">
+                    Disney Channel                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:99,&quot;title&quot;:&quot;Discovery Channel&quot;,&quot;logo&quot;:&quot;https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/2\/27\/Discovery_Channel_-_Logo_2019.svg\/512px-Discovery_Channel_-_Logo_2019.svg.png&quot;,&quot;token&quot;:&quot;cc941c&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/discovery\/default\/index.mpd&quot;}); return false;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Discovery_Channel_-_Logo_2019.svg/512px-Discovery_Channel_-_Logo_2019.svg.png" alt="Discovery Channel">
+                    Discovery Channel                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:112,&quot;title&quot;:&quot;Discovery Asia&quot;,&quot;logo&quot;:null,&quot;token&quot;:&quot;21243f&quot;,&quot;stream_link&quot;:&quot;https:\/\/pull-hls-live.jr365m.cc\/stream\/astromalaysia\/discoveryasia\/master.m3u8&quot;}); return false;">
+                    <img src="" alt="Discovery Asia">
+                    Discovery Asia                                    </a>
+                            <a href="#" onclick="playChannel({&quot;id&quot;:53,&quot;title&quot;:&quot;Warner TV HD&quot;,&quot;logo&quot;:&quot;https:\/\/static.wikia.nocookie.net\/logopedia\/images\/5\/55\/Warner_TV.svg&quot;,&quot;token&quot;:&quot;f3ed51&quot;,&quot;stream_link&quot;:&quot;https:\/\/qp-pldt-live-grp-11-prod.akamaized.net\/out\/u\/dr_warnertvhd.mpd&quot;}); return false;">
+                    <img src="https://static.wikia.nocookie.net/logopedia/images/5/55/Warner_TV.svg" alt="Warner TV HD">
+                    Warner TV HD                                    </a>
+                    </div>
+    </div>
+
+    <div class="player-container" id="playerContainer">
+        <div id="videoPlayerDiv"></div>
+    </div>
+
+    <div id="playerModal" class="modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalVideoPlayerDiv"></div>
+        </div>
+    </div>
+
+
+    <script>
+                </script>
+        <script>
+        var _k1c15_d4t4 = 'W3siaWQiOjg3LCJ0aXRsZSI6Ik5CQSBUViBQaGlsaXBwaW5lcyIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5v'+
+'cmdcL3dpa2lwZWRpYVwvZW5cL3RodW1iXC9kXC9kZVwvTkJBX1RWX1BoaWxpcHBpbmVzLnBuZ1wvMTIwMHB4LU5CQV9UVl9QaGls'+
+'aXBwaW5lcy5wbmciLCJ0b2tlbiI6IjQyZDIzMCIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDIt'+
+'cHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL2NnbmxfbmJhXC9kZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjo5MywidGl0bGUi'+
+'OiJDSU5FTUEgT05FIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9lblwvdGh1bWJc'+
+'LzZcLzZkXC9DaW5lbWFfT25lXzIwMTNfbG9nby5zdmdcLzgwMHB4LUNpbmVtYV9PbmVfMjAxM19sb2dvLnN2Zy5wbmciLCJ0b2tl'+
+'biI6IjgyOTRiZiIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL2Q5cnBlc3JyZzFiZGkuY2xvdWRmcm9udC5uZXRcL291dFwvdjFc'+
+'LzkzYjlkYjdiMjMxZDQ1ZjI4ZjY0ZjI5Yjg2ZGM2YzY1XC9pbmRleC5tcGQifSx7ImlkIjoyLCJ0aXRsZSI6IlRWNSBIRCIsImxv'+
+'Z28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcLzRcLzRmXC9UVjVf'+
+'JTI4UGhpbGlwcGluZXMlMjlfbG9nby5zdmdcLzIwNDhweC1UVjVfJTI4UGhpbGlwcGluZXMlMjlfbG9nby5zdmcucG5nIiwidG9r'+
+'ZW4iOiI1ZTU5MmQiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFpemVkLm5l'+
+'dFwvYnBrLXR2XC90djVfaGRcL2RlZmF1bHQxXC9pbmRleC5tcGQifSx7ImlkIjo5NSwidGl0bGUiOiJDSU5FIE1PISIsImxvZ28i'+
+'OiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvZW5cLzJcLzJiXC9DaW5lbW9fbG9nb192ZWN0b3Jp'+
+'emVkLnN2ZyIsInRva2VuIjoiMjIwZTdlIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvZDFiYWlsNDl1ZGJ6MWsuY2xvdWRmcm9u'+
+'dC5uZXRcL291dFwvdjFcLzNhODk1ZjM2OGY0YTQ2N2M5YmNhMDk2MjU1OWVmYzE5XC9pbmRleC5tcGQifSx7ImlkIjoxMywidGl0'+
+'bGUiOiJQQkEgUnVzaCIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvZW5cL3RodW1i'+
+'XC9jXC9jZFwvUEJBX1J1c2hfbG9nby5wbmdcLzIyMHB4LVBCQV9SdXNoX2xvZ28ucG5nIiwidG9rZW4iOiI5NTAwYTAiLCJzdHJl'+
+'YW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9jZ19wYmFy'+
+'dXNoX2hkMVwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6OCwidGl0bGUiOiJBMloiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9h'+
+'ZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcL2ZcL2Y4XC9BMlpfQ2hhbm5lbF8xMV9Mb2dvLnBuZyIsInRva2Vu'+
+'IjoiYWZkYjQyIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRc'+
+'L2Jway10dlwvY2dfYTJ6XC9kZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjoxMCwidGl0bGUiOiJPbmUgTmV3cyBIRCIsImxvZ28i'+
+'OiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcL2RcL2QwXC9PbmVOZXdz'+
+'UEhfbG9nby5zdmdcLzgwMHB4LU9uZU5ld3NQSF9sb2dvLnN2Zy5wbmciLCJ0b2tlbiI6IjAzN2YwMSIsInN0cmVhbV9saW5rIjoi'+
+'aHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDItcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL29uZW5ld3NfaGQxXC9kZWZh'+
+'dWx0XC9pbmRleC5tcGQifSx7ImlkIjo3OCwidGl0bGUiOiJQcmVtaWVyIFNwb3J0cyAyIiwibG9nbyI6Imh0dHBzOlwvXC9zdGF0'+
+'aWMud2lraWEubm9jb29raWUubmV0XC9ydXNzZWxcL2ltYWdlc1wvZlwvZjhcL1ByZW1pZXJfU3BvcnRzX0xvZ29fMjAyMS5wbmci'+
+'LCJ0b2tlbiI6ImU3MGIwZCIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1ncnAtMTMtcHJvZC5ha2FtYWl6'+
+'ZWQubmV0XC9vdXRcL3VcL2RyX3ByZW1pZXJ0ZW5uaXNoZC5tcGQifSx7ImlkIjo3MCwidGl0bGUiOiJQaW5veSBCb3ggT2ZmaWNl'+
+'IChQQk8pIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9jb21tb25zXC90aHVtYlwv'+
+'ZVwvZThcL1Bpbm95X0JveF9PZmZpY2VfbG9nby5zdmdcLzEyMDBweC1QaW5veV9Cb3hfT2ZmaWNlX2xvZ28uc3ZnLnBuZyIsInRv'+
+'a2VuIjoiNDIwMTQ1Iiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMS1wcm9kLmFrYW1haXplZC5u'+
+'ZXRcL2Jway10dlwvcGJvX3NkXC9kZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjoyOSwidGl0bGUiOiJPbmUgU3BvcnRzKyIsImxv'+
+'Z28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcLzlcLzljXC9PbmVf'+
+'U3BvcnRzX2xvZ28uc3ZnXC83NjhweC1PbmVfU3BvcnRzX2xvZ28uc3ZnLnBuZyIsInRva2VuIjoiOWVmZjBhIiwic3RyZWFtX2xp'+
+'bmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvY2dfb25lc3BvcnRz'+
+'cGx1c19oZDFcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjI4LCJ0aXRsZSI6Ik9uZSBTcG9ydHMgSEQiLCJsb2dvIjoiaHR0'+
+'cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcL3RodW1iXC85XC85Y1wvT25lX1Nwb3J0c19s'+
+'b2dvLnN2Z1wvNzY4cHgtT25lX1Nwb3J0c19sb2dvLnN2Zy5wbmciLCJ0b2tlbiI6IjY1ZjliYSIsInN0cmVhbV9saW5rIjoiaHR0'+
+'cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDItcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL2NnX29uZXNwb3J0c19oZFwvZGVm'+
+'YXVsdFwvaW5kZXgubXBkIn0seyJpZCI6OSwidGl0bGUiOiJPbmUgUEgiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVk'+
+'aWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcL3RodW1iXC9kXC9kMFwvT25lTmV3c1BIX2xvZ28uc3ZnXC8xMTY3cHgtT25lTmV3'+
+'c1BIX2xvZ28uc3ZnLnBuZyIsInRva2VuIjoiZDhmYjRkIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJw'+
+'ay0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvb25lcGhfc2RcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjkxLCJ0'+
+'aXRsZSI6Ik5pY2sgSnIiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNc'+
+'L3RodW1iXC9jXC9jNVwvTmlja19Kci5fbG9nb18yMDIzXyUyOG91dGxpbmUlMjkuc3ZnXC85NjBweC1OaWNrX0pyLl9sb2dvXzIw'+
+'MjNfJTI4b3V0bGluZSUyOS5zdmcucG5nIiwidG9rZW4iOiI2MDQyMTEiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0'+
+'LWxpdmUtYnBrLTAxLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9kcl9uaWNranJcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsi'+
+'aWQiOjUyLCJ0aXRsZSI6Ik5pY2tlbG9kZW9uIFNEIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lr'+
+'aXBlZGlhXC9jb21tb25zXC90aHVtYlwvZVwvZTVcL05pY2tlbG9kZW9uXzIwMjNfbG9nb18lMjhvdXRsaW5lJTI5LnN2Z1wvNzY4'+
+'cHgtTmlja2Vsb2Rlb25fMjAyM19sb2dvXyUyOG91dGxpbmUlMjkuc3ZnLnBuZyIsInRva2VuIjoiMmQxNmZmIiwic3RyZWFtX2xp'+
+'bmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMS1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvZHJfbmlja2Vsb2Rl'+
+'b25cL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjYsInRpdGxlIjoiUFRWIDQiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53'+
+'aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2VuXC90aHVtYlwvZlwvZjlcL1BUVl80X1BhcmFfU2FfQmF5YW5fTG9nb19KdW5lXzIw'+
+'MTcuc3ZnXC84MDBweC1QVFZfNF9QYXJhX1NhX0JheWFuX0xvZ29fSnVuZV8yMDE3LnN2Zy5wbmciLCJ0b2tlbiI6ImYwMThiNyIs'+
+'InN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDEtcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL2Nn'+
+'X3B0djRfc2RcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjY4LCJ0aXRsZSI6Ik5ISyBXb3JsZCBKYXBhbiIsImxvZ28iOiJo'+
+'dHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcLzdcLzdiXC9OSEtfV29ybGQu'+
+'c3ZnXC8zMDBweC1OSEtfV29ybGQuc3ZnLnBuZyIsInRva2VuIjoiYjAyZjAzIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAt'+
+'cGxkdC1saXZlLWJway0wMS1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvZHJfbmhrX2phcGFuXC9kZWZhdWx0XC9pbmRleC5t'+
+'cGQifSx7ImlkIjoxMDUsInRpdGxlIjoiTmF0aW9uYWwgR2VvZ3JhcGhpYyIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2lt'+
+'ZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcL2ZcL2ZjXC9OYXRnZW9sb2dvLnN2Z1wvOTYwcHgtTmF0Z2VvbG9n'+
+'by5zdmcucG5nIiwidG9rZW4iOiJkZDkyZTgiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC92NC12bm8tajEzLWNkbi0wMS5saXZl'+
+'LmNkbi5jZ2F0ZXMubHRcL2xpdmVcL2Rhc2hcLzU2MTkwMVwvaW5kZXgubXBkIn0seyJpZCI6MTEzLCJ0aXRsZSI6Ik5BVCBHRU8g'+
+'V0lMRCIsImxvZ28iOm51bGwsInRva2VuIjoiZGQ5MmE4Iiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvdXNlbGVjdG9yLmNkbi5p'+
+'bnRpZ3JhbC1vdHQubmV0XC9OSERcL05IRC5pc21sXC9tYW5pZmVzdC5tcGQifSx7ImlkIjo5MCwidGl0bGUiOiJNWVgiLCJsb2dv'+
+'IjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcL3RodW1iXC8wXC8wZlwvTXl4cGhs'+
+'b2dvLnN2Z1wvMTIwMHB4LU15eHBobG9nby5zdmcucG5nIiwidG9rZW4iOiJiNDQ2YWEiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwv'+
+'XC9kMjR4ZmhtaGRiNnIwcS5jbG91ZGZyb250Lm5ldFwvb3V0XC92MVwvZTg5N2E3YjY0MTRhNDYwMTk4MThlZTlmMmMwODFjNGZc'+
+'L2luZGV4Lm1wZCJ9LHsiaWQiOjMxLCJ0aXRsZSI6Ik1QVFYiLCJsb2dvIjoiaHR0cHM6XC9cL3N0YXRpYy53aWtpYS5ub2Nvb2tp'+
+'ZS5uZXRcL3J1c3NlbFwvaW1hZ2VzXC84XC84ZFwvTVBUVl9Mb2dvXzIwMjMucG5nIiwidG9rZW4iOiIyNjM4YTEiLCJzdHJlYW1f'+
+'bGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAxLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9jZ19tcHR2XC9k'+
+'ZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjoxMDQsInRpdGxlIjoiTW92aWVzcGhlcmUiLCJsb2dvIjoiaHR0cHM6XC9cL2ltYWdl'+
+'cy1jZG4yLndlbGNvbWVzb2Z0d2FyZS5jb21cL2Fzc2V0c1wvTW92aWVzcGhlcmUtaGVyby5wbmdcL1p6MHpabVptT1dJeE1tRXhO'+
+'R1V4TVdWbVlUVXdZMkZsWW1NMU5UWTNZVEF6WkE9PT93aWR0aD03NjgmYW1wO2hlaWdodD00MzAiLCJ0b2tlbiI6ImFiNDhmYyIs'+
+'InN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL21vdmllc3BoZXJldWstc2Ftc3VuZ3VrLmFtYWdpLnR2XC8zNjBwLXZ0dFwvaW5kZXgu'+
+'bTN1OCJ9LHsiaWQiOjc0LCJ0aXRsZSI6IkxvdHVzIE1hY2F1IiwibG9nbyI6Imh0dHBzOlwvXC9jbXMuY2lnbmFsLnR2XC9VcGxv'+
+'YWRcL1RodW1ibmFpbHNcL21vLW1hY2F1LWxvdHVzLXR2LTM3NTcucG5nIiwidG9rZW4iOiJjZTI5N2YiLCJzdHJlYW1fbGluayI6'+
+'Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtZ3JwLTA3LXByb2QuYWthbWFpemVkLm5ldFwvb3V0XC91XC9sb3R1c21hY2F1X3ByZC5t'+
+'cGQifSx7ImlkIjo3MSwidGl0bGUiOiJQcmVtaWVyIFNwb3J0cyBIRCIsImxvZ28iOiJodHRwczpcL1wvc3RhdGljLndpa2lhLm5v'+
+'Y29va2llLm5ldFwvcnVzc2VsXC9pbWFnZXNcL2ZcL2Y4XC9QcmVtaWVyX1Nwb3J0c19Mb2dvXzIwMjEucG5nIiwidG9rZW4iOiJi'+
+'MDQyYmMiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFpemVkLm5ldFwvYnBr'+
+'LXR2XC9jZ19wc19oZDFcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjEyLCJ0aXRsZSI6IlNhcmktU2FyaSIsImxvZ28iOiJo'+
+'dHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvZW5cLzJcLzIyXC9TYXJpLVNhcmlfQ2hhbm5lbF9sb2dv'+
+'LnBuZyIsInRva2VuIjoiZWFjYzA2Iiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFr'+
+'YW1haXplZC5uZXRcL2Jway10dlwvY2dfc2FyaXNhcmlcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjc1LCJ0aXRsZSI6IlJv'+
+'Y2sgRW50ZXJ0YWlubWVudCIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9u'+
+'c1wvdGh1bWJcLzlcLzk0XC9Sb2NrX0VudGVydGFpbm1lbnQucG5nXC80MzVweC1Sb2NrX0VudGVydGFpbm1lbnQucG5nIiwidG9r'+
+'ZW4iOiJlNDZjODIiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAxLXByb2QuYWthbWFpemVkLm5l'+
+'dFwvYnBrLXR2XC9kcl9yb2NrZW50ZXJ0YWlubWVudFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6ODMsInRpdGxlIjoiVGFw'+
+'IFRWIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9jb21tb25zXC85XC85NFwvVGFw'+
+'VFYtcGgucG5nIiwidG9rZW4iOiIwZWI0MjgiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAxLXBy'+
+'b2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9jZ190YXB0dl9zZFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6NjksInRpdGxl'+
+'IjoiVml2YSBDaW5lbWEiLCJsb2dvIjoiaHR0cHM6XC9cL3N0YXRpYy53aWtpYS5ub2Nvb2tpZS5uZXRcL2xvZ29wZWRpYVwvaW1h'+
+'Z2VzXC8wXC8wN1wvVml2YV9DaW5lbWFfMjAyMS5wbmciLCJ0b2tlbiI6IjlkOTVhNCIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9c'+
+'L3FwLXBsZHQtbGl2ZS1icGstMDEtcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL3ZpdmFfc2RcL2RlZmF1bHRcL2luZGV4Lm1w'+
+'ZCJ9LHsiaWQiOjMwLCJ0aXRsZSI6IlVBQVAgVmFyc2l0eSBDaGFubmVsIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1l'+
+'ZGlhLm9yZ1wvd2lraXBlZGlhXC9lblwvNlwvNmZcL1VhYXB2YXJzaXR5Y2hhbm5lbC5wbmciLCJ0b2tlbiI6ImQ1OTIxZCIsInN0'+
+'cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDItcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL2NnX3Vh'+
+'YXBfY3BsYXlfc2RcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjg0LCJ0aXRsZSI6IlRWVVAiLCJsb2dvIjoiaHR0cHM6XC9c'+
+'L2kwLndwLmNvbVwvdXAuZWR1LnBoXC93cC1jb250ZW50XC91cGxvYWRzXC8yMDE3XC8wNVwvbG9nby1pbWFnZTIucG5nIiwidG9r'+
+'ZW4iOiJlYjU2YTUiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAxLXByb2QuYWthbWFpemVkLm5l'+
+'dFwvYnBrLXR2XC90dnVwX3ByZFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6NTQsInRpdGxlIjoidHZOIFByZW1pdW0gSEQi'+
+'LCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcL3RodW1iXC82XC82N1wv'+
+'TG9nb190dk4uc3ZnXC8zNzVweC1Mb2dvX3R2Ti5zdmcucG5nIiwidG9rZW4iOiJhN2FiMTgiLCJzdHJlYW1fbGluayI6Imh0dHBz'+
+'OlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9jZ190dm5wcmVcL2RlZmF1bHRcL2lu'+
+'ZGV4Lm1wZCJ9LHsiaWQiOjQ3LCJ0aXRsZSI6InR2TiBNb3ZpZXMgUGlub3kiLCJsb2dvIjoiaHR0cHM6XC9cL3N0YXRpYy53aWtp'+
+'YS5ub2Nvb2tpZS5uZXRcL2xvZ29wZWRpYVwvaW1hZ2VzXC85XC85NFwvVHZOX01vdmllc19QaW5veV8yMDIzX0xvZ28uc3ZnIiwi'+
+'dG9rZW4iOiIyODAwMGUiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFpemVk'+
+'Lm5ldFwvYnBrLXR2XC9jZ190dm5tb3ZpZVwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6MTksInRpdGxlIjoiVHJ1ZSBGTSBU'+
+'ViIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvZW5cL3RodW1iXC80XC80MFwvUmFk'+
+'eW81dHJ1ZWZtbG9nby53ZWJwXC82NDBweC1SYWR5bzV0cnVlZm1sb2dvLndlYnAucG5nIiwidG9rZW4iOiI2NmY3Y2IiLCJzdHJl'+
+'YW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC90cnVlZm1f'+
+'dHZcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjEwNywidGl0bGUiOiJUcmF2ZWwgQ2hhbm5lbCIsImxvZ28iOiJodHRwczpc'+
+'L1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcLzhcLzhhXC8yMDE4X1RyYXZlbF9DaGFu'+
+'bmVsX2xvZ28uc3ZnXC82NDBweC0yMDE4X1RyYXZlbF9DaGFubmVsX2xvZ28uc3ZnLnBuZyIsInRva2VuIjoiOGUzMmI1Iiwic3Ry'+
+'ZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMS1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvdHJhdmVs'+
+'X2NoYW5uZWxfc2RcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjg5LCJ0aXRsZSI6IlRlbGVyYWR5byBTZXJiaXN5byIsImxv'+
+'Z28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvZW5cL2FyY2hpdmVcLzJcLzJlXC8yMDIzMTEz'+
+'MDA1MTgyOSUyMVRlbGVSYWR5b19TZXJiaXN5b19sb2dvLnN2ZyIsInRva2VuIjoiNjk2NTBhIiwic3RyZWFtX2xpbmsiOiJodHRw'+
+'czpcL1wvY2RuLXVlMS1wcm9kLnRzdjIuYW1hZ2kudHZcL2xpbmVhclwvYW1nMDEwMDYtYWJzLWNibi10ZWxlcmFkeW8tZGFzaC1h'+
+'YnNjYm5vbm9cLzdhZjFkOTZmLWVlNTctNGQyOC04NzRlLTg3NDM1YzcwNTk4MFwvaW5kZXgubXBkIn0seyJpZCI6MTA4LCJ0aXRs'+
+'ZSI6IlRBUCBTcG9ydHMiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2VuXC82XC82'+
+'ZVwvVEFQX1Nwb3J0c19jaGFubmVsX2xvZ28ucG5nIiwidG9rZW4iOiI4ZTIyMjEiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9x'+
+'cC1wbGR0LWxpdmUtYnBrLTAxLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9kcl90YXBzcG9ydHNcL2RlZmF1bHRcL2luZGV4'+
+'Lm1wZCJ9LHsiaWQiOjMsInRpdGxlIjoiUlBUViBIRCIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dp'+
+'a2lwZWRpYVwvY29tbW9uc1wvNVwvNWJcL1JQVFZfJTI4MjAyNCUyOS5zdmciLCJ0b2tlbiI6ImJjZDEwMCIsInN0cmVhbV9saW5r'+
+'IjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDItcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL2Nubl9ycHR2X3Byb2Rf'+
+'aGRcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjgxLCJ0aXRsZSI6IlRBUCBNb3ZpZXMgSEQiLCJsb2dvIjoiaHR0cHM6XC9c'+
+'L3N0YXRpYy53aWtpYS5ub2Nvb2tpZS5uZXRcL3J1c3NlbFwvaW1hZ2VzXC9jXC9jYlwvVEFQX01vdmllc19Mb2dvXzIwMjEucG5n'+
+'IiwidG9rZW4iOiJjMDA5ZmEiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFp'+
+'emVkLm5ldFwvYnBrLXR2XC9jZ190YXBtb3ZpZXNfaGQxXC9kZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjo2MCwidGl0bGUiOiJU'+
+'YXAgRWRnZSIsImxvZ28iOiJodHRwczpcL1wvc3RhdGljLndpa2lhLm5vY29va2llLm5ldFwvcnVzc2VsXC9pbWFnZXNcLzVcLzU3'+
+'XC9UQVBfRWRnZV9Mb2dvX05vdmVtYmVyXzIwMjAucG5nIiwidG9rZW4iOiI1MGQ0OGYiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwv'+
+'XC9xcC1wbGR0LWxpdmUtZ3JwLTEyLXByb2QuYWthbWFpemVkLm5ldFwvb3V0XC91XC9kcl90YXBlZGdlLm1wZCJ9LHsiaWQiOjgy'+
+'LCJ0aXRsZSI6IlRhcCBBY3Rpb24gRmxpeCBNb3ZpZXMiLCJsb2dvIjoiaHR0cHM6XC9cL3N0YXRpYy53aWtpYS5ub2Nvb2tpZS5u'+
+'ZXRcL2xvZ29wZWRpYVwvaW1hZ2VzXC84XC84OFwvVEFQX0FjdGlvbkZsaXhfbG9nby5wbmciLCJ0b2tlbiI6IjdiNzk0OSIsInN0'+
+'cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDEtcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL2NnX3Rh'+
+'cGFjdGlvbmZsaXhfaGQxXC9kZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjo3MywidGl0bGUiOiJUYWdhbG9nIE1vdmllIENoYW5u'+
+'ZWwgKFRNQykiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2VuXC8yXC8yN1wvVG1j'+
+'MjAyMWxvZ28ucG5nIiwidG9rZW4iOiIxY2JjYWMiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAx'+
+'LXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9jZ190YWdhbG9nbW92aWVcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjg1'+
+'LCJ0aXRsZSI6IlNQT1RWIEhEIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9jb21t'+
+'b25zXC90aHVtYlwvMlwvMjVcL1NQT1RWX2xvZ28uc3ZnXC8xMjAwcHgtU1BPVFZfbG9nby5zdmcucG5nIiwidG9rZW4iOiJmMzhi'+
+'MjQiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAxLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2'+
+'XC9jZ19zcG90dmhkXC9kZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjo4NiwidGl0bGUiOiJTUE9UViAyIEhEIiwibG9nbyI6Imh0'+
+'dHBzOlwvXC9zdGF0aWMud2lraWEubm9jb29raWUubmV0XC9sb2dvcGVkaWFcL2ltYWdlc1wvNlwvNjhcL1NQT1RWMl9sb2dvXzIw'+
+'MTgucG5nIiwidG9rZW4iOiI3OWE4YTUiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAxLXByb2Qu'+
+'YWthbWFpemVkLm5ldFwvYnBrLXR2XC9kcl9zcG90djJoZFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6MTA2LCJ0aXRsZSI6'+
+'IlNvbnkgQ2luZSIsImxvZ28iOiJodHRwczpcL1wvc3RhdGljLndpa2lhLm5vY29va2llLm5ldFwvbG9nb3BlZGlhXC9pbWFnZXNc'+
+'L2ZcL2ZiXC9Tb255X0NpbmVfMjAyMV9Mb2dvLnBuZyIsInRva2VuIjoiMzRhNWQ2Iiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wv'+
+'YS1jZG4ua2xvd2R0di5jb21cL2xpdmUxXC9jaW5lXzcyMHBcL2NodW5rcy5tM3U4In0seyJpZCI6MzIsInRpdGxlIjoiS25vd2xl'+
+'ZGdlIENoYW5uZWwiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcL2Rc'+
+'L2QzXC9Lbm93bGVkZ2VfQ2hhbm5lbF9sb2dvLnBuZyIsInRva2VuIjoiZDU3NDYwIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wv'+
+'cXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwva25vd2xlZGdlX2NoYW5uZWxcL2RlZmF1bHRc'+
+'L2luZGV4Lm1wZCJ9LHsiaWQiOjU5LCJ0aXRsZSI6IkxpZmV0aW1lIFNEIiwibG9nbyI6Imh0dHBzOlwvXC9sb2dvd2lrLmNvbVwv'+
+'Y29udGVudFwvdXBsb2Fkc1wvaW1hZ2VzXC9saWZldGltZS10di1uZXctMjAyMDIwMzYuanBnIiwidG9rZW4iOiJhMWE1ZTYiLCJz'+
+'dHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAxLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9kcl9s'+
+'aWZldGltZVwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6MSwidGl0bGUiOiJLYXBhbWlseWEgQ2hhbm5lbCIsImxvZ28iOiJo'+
+'dHRwczpcL1wvc3RhdGljLndpa2lhLm5vY29va2llLm5ldFwvcnVzc2VsXC9pbWFnZXNcLzJcLzI5XC9LYXBhbWlseWFfQ2hhbm5l'+
+'bF8zRF9Mb2dvXzIwMjAucG5nIiwidG9rZW4iOiI2NmI2YTUiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9jZG4tdWUxLXByb2Qu'+
+'dHN2Mi5hbWFnaS50dlwvbGluZWFyXC9hbWcwMTAwNi1hYnMtY2JuLWthcGNoYS1kYXNoLWFic2Nibm9ub1wvOWViZDEyN2YtYzc2'+
+'Zi00N2NhLWE4NmEtMjAxNTdhMzdiNjVhXC9pbmRleC5tcGQifSx7ImlkIjo1NSwidGl0bGUiOiJLQlMgV29ybGQgU0QiLCJsb2dv'+
+'IjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcL3RodW1iXC8xXC8xYlwvS0JTX1dv'+
+'cmxkXyUyODIwMDklMjkuc3ZnXC8xMjAwcHgtS0JTX1dvcmxkXyUyODIwMDklMjkuc3ZnLnBuZyIsInRva2VuIjoiNTJiNzUzIiwi'+
+'c3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMS1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwva2Jz'+
+'d29ybGRcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjc3LCJ0aXRsZSI6IkJCQyBOZXdzIiwibG9nbyI6Imh0dHBzOlwvXC91'+
+'cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9jb21tb25zXC90aHVtYlwvYVwvYTJcL0JCQ19OZXdzXzIwMjJfJTI4QWx0'+
+'JTI5LnN2Z1wvNjQwcHgtQkJDX05ld3NfMjAyMl8lMjhBbHQlMjkuc3ZnLnBuZyIsInRva2VuIjoiNDBkNjkyIiwic3RyZWFtX2xp'+
+'bmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMS1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvYmJjd29ybGRfbmV3'+
+'c19zZFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6NDUsInRpdGxlIjoiQ2luZW1heCBIRCIsImxvZ28iOiJodHRwczpcL1wv'+
+'dXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvZlwvZjBcLzYxMS1jaW5lbWF4LnBuZyIsInRva2VuIjoi'+
+'MTQ1NjdiIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jw'+
+'ay10dlwvY2dfY2luZW1heFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6NjcsInRpdGxlIjoiQ0dUTiIsImxvZ28iOiJodHRw'+
+'czpcL1wvdWkuY2d0bi5jb21cL3N0YXRpY1wvbmdcL3Jlc291cmNlXC9pbWFnZXNcL2xvZ29fdGl0bGUucG5nIiwidG9rZW4iOiJk'+
+'MDhiYTAiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtZ3JwLTExLXByb2QuYWthbWFpemVkLm5ldFwvb3V0'+
+'XC91XC9kcl9jZ3RuLm1wZCJ9LHsiaWQiOjk4LCJ0aXRsZSI6IkNlbGVzdGlhbCBNb3ZpZXMgUGlub3kiLCJsb2dvIjoiaHR0cHM6'+
+'XC9cL3Njb250ZW50LmZjZWI2LTEuZm5hLmZiY2RuLm5ldFwvdlwvdDM5LjMwODA4LTZcLzMwNTc2NDQ5M180NzY1NTY5Mzc4MTM4'+
+'NjVfMzgxMjA5MDM4NDE0NDkxNTExMF9uLnBuZz9fbmNfY2F0PTEwNyZhbXA7YW1wO2FtcDtjY2I9MS03JmFtcDthbXA7YW1wO19u'+
+'Y19zaWQ9NmVlMTFhJmFtcDthbXA7YW1wO19uY19ldWkyPUFlSExzV3NWXzE0Z3l1QWNsVnRuT1FmSW52Yk1jenVCMTltZTlzeHpP'+
+'NEhYMlIzdjVoRWx5RVpZZVhPZTRTVU1yeUUmYW1wO2FtcDthbXA7X25jX29oYz1mT1hxRkFUMS16c1E3a052d0Zmd2FZdiZhbXA7'+
+'YW1wO2FtcDtfbmNfb2M9QWRrWm53Um4yeXNxa0dzUnA3eXZYYXdkYVVZcHdxeEwya2J1clVmS0ViMmZMcmZYYUxEOXYtWUtJc3lP'+
+'TGFlVlR3NCZhbXA7YW1wO2FtcDtfbmNfenQ9MjMmYW1wO2FtcDthbXA7X25jX2h0PXNjb250ZW50LmZjZWI2LTEuZm5hJmFtcDth'+
+'bXA7YW1wO19uY19naWQ9Qjh6akxkUGhtdmxCeFZ5dVVwNVI3QSZhbXA7YW1wO2FtcCIsInRva2VuIjoiNzcwODkyIiwic3RyZWFt'+
+'X2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMS1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvY2VsbW92aWVf'+
+'cGlub3lfc2RcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjM5LCJ0aXRsZSI6IkNDVFYgNCIsImxvZ28iOiJodHRwczpcL1wv'+
+'dXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvZW5cLzBcLzA4XC9DQ1RWLTRfY2hhbm5lbC5zdmciLCJ0b2tlbiI6IjM2'+
+'YjhlMCIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDEtcHJvZC5ha2FtYWl6ZWQubmV0XC9icGst'+
+'dHZcL2RyX2NjdHY0XC9kZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjo5NiwidGl0bGUiOiJDYXJ0b29uIE5ldHdvcmsiLCJsb2dv'+
+'IjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcLzhcLzgwXC9DYXJ0b29uX05ldHdv'+
+'cmtfMjAxMF9sb2dvLnN2ZyIsInRva2VuIjoiZDQyNWUwIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJw'+
+'ay0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvY2FydG9vbm5ldHdvcmtoZFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJp'+
+'ZCI6MTEsInRpdGxlIjoiQnVrbyIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvZW5c'+
+'L2NcL2MwXC9CdUtvX0J1aGF5X0tvbWVkeWFfTG9nby5qcGciLCJ0b2tlbiI6IjY4YTlkYyIsInN0cmVhbV9saW5rIjoiaHR0cHM6'+
+'XC9cL3FwLXBsZHQtbGl2ZS1icGstMDEtcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL2NnX2J1a29fc2RcL2RlZmF1bHRcL2lu'+
+'ZGV4Lm1wZCJ9LHsiaWQiOjM2LCJ0aXRsZSI6IkJsb29tYmVyZyIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5v'+
+'cmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcLzVcLzVkXC9OZXdfQmxvb21iZXJnX0xvZ28uc3ZnXC83NjhweC1OZXdfQmxv'+
+'b21iZXJnX0xvZ28uc3ZnLnBuZyIsInRva2VuIjoiMzk5YjU2Iiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZl'+
+'LWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvYmxvb21iZXJnX3NkXC9kZWZhdWx0XC9pbmRleC5tcGQifSx7Imlk'+
+'IjoxMDIsInRpdGxlIjoiQmlseW9uYXJ5byIsImxvZ28iOiJodHRwczpcL1wvc3RhdGljLndpa2lhLm5vY29va2llLm5ldFwvdHYt'+
+'cGhpbGlwcGluZXNcL2ltYWdlc1wvY1wvY2VcL0JpbHlvbmFyeW9OZXdzQ2hhbm5lbF9Mb2dvXy1fQmxhY2tfJTI4MjAyNCUyOS5w'+
+'bmciLCJ0b2tlbiI6ImM3MzkwMyIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDItcHJvZC5ha2Ft'+
+'YWl6ZWQubmV0XC9icGstdHZcL2JpbHlvbmFyeW9jaFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6NzksInRpdGxlIjoiQkJD'+
+'IEVhcnRoIEhEIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9jb21tb25zXC83XC83'+
+'ZVwvQkJDX0VhcnRoXzIwMjMuc3ZnIiwidG9rZW4iOiIyODdlODAiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxp'+
+'dmUtYnBrLTAxLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9jZ19iYmNlYXJ0aF9oZDFcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9'+
+'LHsiaWQiOjM4LCJ0aXRsZSI6IkNOTiBIRCIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRp'+
+'YVwvY29tbW9uc1wvZlwvZmJcL0Nubl9sb2dvX3JlZF9iYWNrZ3JvdW5kLnBuZyIsInRva2VuIjoiNWQzYzYwIiwic3RyZWFtX2xp'+
+'bmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvY2dfY25uaGRcL2Rl'+
+'ZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjU2LCJ0aXRsZSI6IkFYTiIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRp'+
+'YS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcL2FcL2EwXC9BWE5fbG9nby5zdmdcLzM5NXB4LUFYTl9sb2dvLnN2Zy5w'+
+'bmciLCJ0b2tlbiI6IjNhOTE1MSIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1icGstMDItcHJvZC5ha2Ft'+
+'YWl6ZWQubmV0XC9icGstdHZcL2NnX2F4bl9zZFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6NzYsInRpdGxlIjoiQXNpYW4g'+
+'Rm9vZCBOZXR3b3JrIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9jb21tb25zXC9l'+
+'XC9lOVwvQXNpYW5fRm9vZF9OZXR3b3JrLnN2ZyIsInRva2VuIjoiOTE0Mjg2Iiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAt'+
+'cGxkdC1saXZlLWdycC0wNy1wcm9kLmFrYW1haXplZC5uZXRcL291dFwvdVwvYXNpYW5mb29kbmV0d29ya19zZC5tcGQifSx7Imlk'+
+'Ijo2NSwidGl0bGUiOiJBcmlyYW5nIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9j'+
+'b21tb25zXC82XC82NFwvQXJpcmFuZ19sb2dvLnBuZyIsInRva2VuIjoiMmRiODNjIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wv'+
+'cXAtcGxkdC1saXZlLWdycC0wMS1wcm9kLmFrYW1haXplZC5uZXRcL291dFwvdVwvYXJpcmFuZ19zZC5tcGQifSx7ImlkIjo0OCwi'+
+'dGl0bGUiOiJBbmltYXgiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNc'+
+'L3RodW1iXC8yXC8yYlwvQW5pbWF4X2xvZ28uc3ZnXC8xMjAwcHgtQW5pbWF4X2xvZ28uc3ZnLnBuZyIsInRva2VuIjoiNzViZmY1'+
+'Iiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMS1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwv'+
+'Y2dfYW5pbWF4X3NkX25ld1wvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6ODAsInRpdGxlIjoiQW5pbWFsIFBsYW5ldCIsImxv'+
+'Z28iOiJodHRwczpcL1wvZDNmYWowdzZhcWF0eXguY2xvdWRmcm9udC5uZXRcL3VwbG9hZHNcLzIwMThcLzEwXC8yNTExNTY0N1wv'+
+'QW5pbWFsUGxhbmV0X1ZlcnRpY2FsX09uZUxpbmVMYXJnZV9SR0ItMDAyLmpwZyIsInRva2VuIjoiZWE0YzBhIiwic3RyZWFtX2xp'+
+'bmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWdycC0wMi1wcm9kLmFrYW1haXplZC5uZXRcL291dFwvdVwvY2dfYW5pbWFsX3Bs'+
+'YW5ldF9zZC5tcGQifSx7ImlkIjo5NCwidGl0bGUiOiJBTkMiLCJsb2dvIjoiaHR0cHM6XC9cL3N0YXRpYy53aWtpYS5ub2Nvb2tp'+
+'ZS5uZXRcL2Fic2NiblwvaW1hZ2VzXC9hXC9hNlwvQU5DXyUyODIwMTUlMjkuc3ZnIiwidG9rZW4iOiJkMzI5NjEiLCJzdHJlYW1f'+
+'bGluayI6Imh0dHBzOlwvXC9jZG4tdWUxLXByb2QudHN2Mi5hbWFnaS50dlwvbGluZWFyXC9hbWcwMTAwNi1hYnMtY2JuLWFuYy1n'+
+'bG9iYWwtZGFzaC1hYnNjYm5vbm9cLzJhNTIwMTEyLTVmZjItNGEyZS05ZjEzLTc2MmM2MjEyN2I1OFwvaW5kZXgubXBkIn0seyJp'+
+'ZCI6MTA5LCJ0aXRsZSI6IkFNQyIsImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29t'+
+'bW9uc1wvdGh1bWJcLzFcLzFkXC9BbWNfbG9nby5zdmdcLzI1NjBweC1BbWNfbG9nby5zdmcucG5nIiwidG9rZW4iOiIyZGIyMmMi'+
+'LCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC81ZGVmMzNjNzNmMDg0ZTExYTE5Y2E3NzY5N2Q2YjQxMy5tZWRpYXRhaWxvci51cy1l'+
+'YXN0LTEuYW1hem9uYXdzLmNvbVwvdjFcL21hbmlmZXN0XC80NGY3M2JhNGQwM2U5NjA3ZGNkOWJlYmRjYjg0OTRkODY5NjRmMWQ4'+
+'XC9cL1BsZXhfQU1DUHJlc2VudHNcLzIxNmJlZTBkLTEwNjAtNGVhMi1iNTk1LWU2ZWJhYmRlMmQxY1wvMi5tM3U4In0seyJpZCI6'+
+'MzUsInRpdGxlIjoiQWwgSmF6ZWVyYSIsImxvZ28iOiJodHRwczpcL1wvbG9nb3dpay5jb21cL2NvbnRlbnRcL3VwbG9hZHNcL2lt'+
+'YWdlc1wvYWwtamF6ZWVyYS10djY1MDMuanBnIiwidG9rZW4iOiI3NTlmZmQiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9saXZl'+
+'LWhscy13ZWItYWplLmdldGFqLm5ldFwvQUpFXC9pbmRleC5tM3U4In0seyJpZCI6MzcsInRpdGxlIjoiQ05BIiwibG9nbyI6Imh0'+
+'dHBzOlwvXC9sb2dvd2lrLmNvbVwvY29udGVudFwvdXBsb2Fkc1wvaW1hZ2VzXC9jbmEtY2hhbm5lbC1uZXdzLWFzaWE5MzkyLmpw'+
+'ZyIsInRva2VuIjoiMWNlOTEwIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1h'+
+'aXplZC5uZXRcL2Jway10dlwvY2hhbm5lbG5ld3Nhc2lhXC9kZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjoxMTAsInRpdGxlIjoi'+
+'Q3JpbWUgSW52ZXN0aWdhdGlvbiIsImxvZ28iOm51bGwsInRva2VuIjoiMjMxMjMzIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wv'+
+'cXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvY3JpbWVfaW52ZXN0XC9kZWZhdWx0XC9pbmRl'+
+'eC5tcGQifSx7ImlkIjo2NCwidGl0bGUiOiJBQkMgQXVzdHJhbGlhIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlh'+
+'Lm9yZ1wvd2lraXBlZGlhXC9lblwvNVwvNTdcL0FCQ19BdXN0cmFsaWFfbG9nby5zdmciLCJ0b2tlbiI6IjU5OGE4NyIsInN0cmVh'+
+'bV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1ncnAtMTAtcHJvZC5ha2FtYWl6ZWQubmV0XC9vdXRcL3VcL2RyX2FiY19h'+
+'dXMubXBkIn0seyJpZCI6NDMsInRpdGxlIjoiSEJPIEhpdHMgSEQiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEu'+
+'b3JnXC93aWtpcGVkaWFcL2VuXC9mXC9mY1wvSEJPSGl0cy1BU0lBLnBuZyIsInRva2VuIjoiNjUwMGUyIiwic3RyZWFtX2xpbmsi'+
+'OiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvY2dfaGJvaGl0c1wvZGVm'+
+'YXVsdFwvaW5kZXgubXBkIn0seyJpZCI6MTAzLCJ0aXRsZSI6IkplZXBuZXkgVFYiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53'+
+'aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2VuXC90aHVtYlwvMVwvMTVcL0plZXBuZXlfVFZfTG9nb18yMDE1LnN2Z1wvMTIwMHB4'+
+'LUplZXBuZXlfVFZfTG9nb18yMDE1LnN2Zy5wbmciLCJ0b2tlbiI6ImJhMGZhZCIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL2pl'+
+'ZXBuZXkuZmZsYW1lMTQzLndvcmtlcnMuZGV2XC9tYXN0ZXIubTN1OCJ9LHsiaWQiOjcsInRpdGxlIjoiSUJDIDEzIiwibG9nbyI6'+
+'Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9lblwvdGh1bWJcLzRcLzRmXC9JQkNfMTNfTG9nb18y'+
+'MDExLnN2Z1wvMTIwMHB4LUlCQ18xM19Mb2dvXzIwMTEuc3ZnLnBuZyIsInRva2VuIjoiODUxMzk4Iiwic3RyZWFtX2xpbmsiOiJo'+
+'dHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMS1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvaWJjMTNfc2RfbmV3XC9kZWZh'+
+'dWx0MVwvaW5kZXgubXBkIn0seyJpZCI6NTgsInRpdGxlIjoiSElUUyBOb3ciLCJsb2dvIjoiaHR0cHM6XC9cL2Ntcy5jaWduYWwu'+
+'dHZcL1VwbG9hZFwvSW1hZ2VzXC9IaXRzJTIwTm93LnBuZyIsInRva2VuIjoiNjJhODBiIiwic3RyZWFtX2xpbmsiOiJodHRwczpc'+
+'L1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvY2dfaGl0c25vd1wvZGVmYXVsdFwvaW5k'+
+'ZXgubXBkIn0seyJpZCI6NDYsInRpdGxlIjoiSElUUyBNb3ZpZXMiLCJsb2dvIjoiaHR0cHM6XC9cL3N0YXRpYy53aWtpYS5ub2Nv'+
+'b2tpZS5uZXRcL2xvZ29wZWRpYVwvaW1hZ2VzXC80XC80YVwvSElUU19NT1ZJRVNfQVNJQS5wbmciLCJ0b2tlbiI6IjM1Zjc0NCIs'+
+'InN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1ncnAtMTItcHJvZC5ha2FtYWl6ZWQubmV0XC9vdXRcL3VcL2Ry'+
+'X2hpdHNtb3ZpZXMubXBkIn0seyJpZCI6NTcsInRpdGxlIjoiSGl0cyBIRCIsImxvZ28iOiJodHRwczpcL1wvc3RhdGljLndpa2lh'+
+'Lm5vY29va2llLm5ldFwvbG9nb3BlZGlhXC9pbWFnZXNcL2VcL2U5XC9IaXRzXyUyOFNvdXRoZWFzdF9Bc2lhJTI5LnN2ZyIsInRv'+
+'a2VuIjoiNWIxM2IxIiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5u'+
+'ZXRcL2Jway10dlwvaGl0c19oZDFcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjY2LCJ0aXRsZSI6Ikhpc3RvcnkgSEQiLCJs'+
+'b2dvIjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcL3RodW1iXC8zXC8zMlwvSGlz'+
+'dG9yeV9IRF9Mb2dvLnN2Z1wvMjU2MHB4LUhpc3RvcnlfSERfTG9nby5zdmcucG5nIiwidG9rZW4iOiIwN2M1OGYiLCJzdHJlYW1f'+
+'bGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAxLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9kcl9oaXN0b3J5'+
+'aGRcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjYxLCJ0aXRsZSI6IkhHVFYgSEQiLCJsb2dvIjoiaHR0cHM6XC9cL3VwbG9h'+
+'ZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcL2FcL2E4XC9IR1RWXzIwMTAuc3ZnIiwidG9rZW4iOiIxMjJlYjAi'+
+'LCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9o'+
+'Z3R2X2hkMVwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6NDIsInRpdGxlIjoiSEJPIFNpZ25hdHVyZSBIRCIsImxvZ28iOiJo'+
+'dHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcLzlcLzllXC9IQk9fU2lnbmF0'+
+'dXJlLnN2Z1wvMjU2MHB4LUhCT19TaWduYXR1cmUuc3ZnLnBuZyIsInRva2VuIjoiY2QzOWU4Iiwic3RyZWFtX2xpbmsiOiJodHRw'+
+'czpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvY2dfaGJvc2lnblwvZGVmYXVsdFwv'+
+'aW5kZXgubXBkIn0seyJpZCI6NDEsInRpdGxlIjoiSEJPIEhEIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9y'+
+'Z1wvd2lraXBlZGlhXC9jb21tb25zXC80XC80YVwvSEJPX0hELnBuZyIsInRva2VuIjoiZGFjNDlmIiwic3RyZWFtX2xpbmsiOiJo'+
+'dHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvY2dfaGJvaGRcL2RlZmF1bHRc'+
+'L2luZGV4Lm1wZCJ9LHsiaWQiOjMzLCJ0aXRsZSI6IkRlcEVkIFRWIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlh'+
+'Lm9yZ1wvd2lraXBlZGlhXC9jb21tb25zXC80XC80YVwvRGVwZWR0dmxvZ28ucG5nIiwidG9rZW4iOiIxY2Q3MDkiLCJzdHJlYW1f'+
+'bGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9kZXBlZGNoX3Nk'+
+'XC9kZWZhdWx0XC9pbmRleC5tcGQifSx7ImlkIjo0NCwidGl0bGUiOiJIQk8gRmFtaWx5IEhEIiwibG9nbyI6Imh0dHBzOlwvXC91'+
+'cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lraXBlZGlhXC9lblwvdGh1bWJcL2RcL2QyXC9IQk9fRmFtaWx5X0FzaWFfbG9nby5zdmdc'+
+'LzMwMHB4LUhCT19GYW1pbHlfQXNpYV9sb2dvLnN2Zy5wbmciLCJ0b2tlbiI6IjJhZmRjNSIsInN0cmVhbV9saW5rIjoiaHR0cHM6'+
+'XC9cL3FwLXBsZHQtbGl2ZS1icGstMDItcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL2NnX2hib2ZhbVwvZGVmYXVsdFwvaW5k'+
+'ZXgubXBkIn0seyJpZCI6NDAsInRpdGxlIjoiRnJhbmNlIDI0IiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9y'+
+'Z1wvd2lraXBlZGlhXC9lblwvdGh1bWJcLzZcLzY1XC9GUkFOQ0VfMjRfbG9nby5zdmdcLzgwMHB4LUZSQU5DRV8yNF9sb2dvLnN2'+
+'Zy5wbmciLCJ0b2tlbiI6IjhiZGRkMiIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1ncnAtMTEtcHJvZC5h'+
+'a2FtYWl6ZWQubmV0XC9vdXRcL3VcL2RyX2ZyYW5jZTI0Lm1wZCJ9LHsiaWQiOjYyLCJ0aXRsZSI6IkZvb2QgTmV0d29yayBIRCIs'+
+'ImxvZ28iOiJodHRwczpcL1wvdXBsb2FkLndpa2ltZWRpYS5vcmdcL3dpa2lwZWRpYVwvY29tbW9uc1wvdGh1bWJcLzBcLzA2XC9G'+
+'b29kX05ldHdvcmtfbG9nby5zdmdcLzEyMDBweC1Gb29kX05ldHdvcmtfbG9nby5zdmcucG5nIiwidG9rZW4iOiJlYTY3NGYiLCJz'+
+'dHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2QuYWthbWFpemVkLm5ldFwvYnBrLXR2XC9jZ19m'+
+'b29kbmV0d29ya19oZDFcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjYzLCJ0aXRsZSI6IkZhc2hpb24gVFYgSEQiLCJsb2dv'+
+'IjoiaHR0cHM6XC9cL3VwbG9hZC53aWtpbWVkaWEub3JnXC93aWtpcGVkaWFcL2NvbW1vbnNcLzdcLzdhXC9GYXNoaW9uX1RWX2xv'+
+'Z28uc3ZnIiwidG9rZW4iOiJlYmIwMzEiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9xcC1wbGR0LWxpdmUtYnBrLTAyLXByb2Qu'+
+'YWthbWFpemVkLm5ldFwvYnBrLXR2XC9mYXNoaW9udHZoZFwvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJpZCI6NDksInRpdGxlIjoi'+
+'RHJlYW1Xb3JrcyBIRCIsImxvZ28iOiJodHRwczpcL1wvY21zLmNpZ25hbC50dlwvVXBsb2FkXC9JbWFnZXNcL0RyZWFtLVdvcmtz'+
+'LmpwZyIsInRva2VuIjoiMjE3MTY5Iiwic3RyZWFtX2xpbmsiOiJodHRwczpcL1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFr'+
+'YW1haXplZC5uZXRcL2Jway10dlwvY2dfZHJlYW13b3Jrc19oZDFcL2RlZmF1bHRcL2luZGV4Lm1wZCJ9LHsiaWQiOjUwLCJ0aXRs'+
+'ZSI6IkRyZWFtV29ya3MgKFRhZ2FsaXplZCkiLCJsb2dvIjoiaHR0cHM6XC9cL2Ntcy5jaWduYWwudHZcL1VwbG9hZFwvSW1hZ2Vz'+
+'XC9EcmVhbS1Xb3Jrcy5qcGciLCJ0b2tlbiI6IjU4M2JhYyIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1i'+
+'cGstMDItcHJvZC5ha2FtYWl6ZWQubmV0XC9icGstdHZcL2NnX2RyZWFtd29ya3RhZ1wvZGVmYXVsdFwvaW5kZXgubXBkIn0seyJp'+
+'ZCI6MTAwLCJ0aXRsZSI6IkRpc25leSBDaGFubmVsIiwibG9nbyI6Imh0dHBzOlwvXC93d3cuaG9sbHl3b29kcmVwb3J0ZXIuY29t'+
+'XC93cC1jb250ZW50XC91cGxvYWRzXC8yMDE0XC8wNVwvZGlzbmV5X2NoYW5uZWxfbG9nb19hX2wuanBnIiwidG9rZW4iOiI0ZTQ1'+
+'OTUiLCJzdHJlYW1fbGluayI6Imh0dHBzOlwvXC9wb3AxZTMuY2RuLmludGlncmFsLW90dC5uZXRcL2Jway10b2tlblwvMWFpQGN2'+
+'Y2FzZ2F4a2FpMHF3MXYzM2dqdGZhZW5xaXZhcXViY3Bmd3NhY2FcL0RJU1wvRElTLmlzbWxcL21hbmlmZXN0Lm1wZCJ9LHsiaWQi'+
+'Ojk5LCJ0aXRsZSI6IkRpc2NvdmVyeSBDaGFubmVsIiwibG9nbyI6Imh0dHBzOlwvXC91cGxvYWQud2lraW1lZGlhLm9yZ1wvd2lr'+
+'aXBlZGlhXC9jb21tb25zXC90aHVtYlwvMlwvMjdcL0Rpc2NvdmVyeV9DaGFubmVsXy1fTG9nb18yMDE5LnN2Z1wvNTEycHgtRGlz'+
+'Y292ZXJ5X0NoYW5uZWxfLV9Mb2dvXzIwMTkuc3ZnLnBuZyIsInRva2VuIjoiY2M5NDFjIiwic3RyZWFtX2xpbmsiOiJodHRwczpc'+
+'L1wvcXAtcGxkdC1saXZlLWJway0wMi1wcm9kLmFrYW1haXplZC5uZXRcL2Jway10dlwvZGlzY292ZXJ5XC9kZWZhdWx0XC9pbmRl'+
+'eC5tcGQifSx7ImlkIjoxMTIsInRpdGxlIjoiRGlzY292ZXJ5IEFzaWEiLCJsb2dvIjpudWxsLCJ0b2tlbiI6IjIxMjQzZiIsInN0'+
+'cmVhbV9saW5rIjoiaHR0cHM6XC9cL3B1bGwtaGxzLWxpdmUuanIzNjVtLmNjXC9zdHJlYW1cL2FzdHJvbWFsYXlzaWFcL2Rpc2Nv'+
+'dmVyeWFzaWFcL21hc3Rlci5tM3U4In0seyJpZCI6NTMsInRpdGxlIjoiV2FybmVyIFRWIEhEIiwibG9nbyI6Imh0dHBzOlwvXC9z'+
+'dGF0aWMud2lraWEubm9jb29raWUubmV0XC9sb2dvcGVkaWFcL2ltYWdlc1wvNVwvNTVcL1dhcm5lcl9UVi5zdmciLCJ0b2tlbiI6'+
+'ImYzZWQ1MSIsInN0cmVhbV9saW5rIjoiaHR0cHM6XC9cL3FwLXBsZHQtbGl2ZS1ncnAtMTEtcHJvZC5ha2FtYWl6ZWQubmV0XC9v'+
+'dXRcL3VcL2RyX3dhcm5lcnR2aGQubXBkIn1d'+
+'';
+		
+		function klcis_decode(str) {
+            try {
+                str = str.replace(/[\n\r\s\+']/g, '');
+                return JSON.parse(atob(str));
+            } catch(e) {
+                console.error("Decoding error", e);
+                return [];
+            }
+        }
+
+        var _keyName = ['c','h','a','n','n','e','l','D','a','t','a'].join('');
+        window[_keyName] = klcis_decode(_k1c15_d4t4);
+
+        var desktopPlayer = null;
+        var mobilePlayer = null;
+		
+        [{"id":87,"title":"NBA TV Philippines","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/d\/de\/NBA_TV_Philippines.png\/1200px-NBA_TV_Philippines.png","token":"42d230","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cgnl_nba\/default\/index.mpd"},{"id":93,"title":"CINEMA ONE","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/6\/6d\/Cinema_One_2013_logo.svg\/800px-Cinema_One_2013_logo.svg.png","token":"8294bf","stream_link":"https:\/\/d9rpesrrg1bdi.cloudfront.net\/out\/v1\/93b9db7b231d45f28f64f29b86dc6c65\/index.mpd"},{"id":2,"title":"TV5 HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/4\/4f\/TV5_%28Philippines%29_logo.svg\/2048px-TV5_%28Philippines%29_logo.svg.png","token":"5e592d","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/tv5_hd\/default1\/index.mpd"},{"id":95,"title":"CINE MO!","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/2\/2b\/Cinemo_logo_vectorized.svg","token":"220e7e","stream_link":"https:\/\/d1bail49udbz1k.cloudfront.net\/out\/v1\/3a895f368f4a467c9bca0962559efc19\/index.mpd"},{"id":13,"title":"PBA Rush","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/c\/cd\/PBA_Rush_logo.png\/220px-PBA_Rush_logo.png","token":"9500a0","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_pbarush_hd1\/default\/index.mpd"},{"id":8,"title":"A2Z","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/f\/f8\/A2Z_Channel_11_Logo.png","token":"afdb42","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_a2z\/default\/index.mpd"},{"id":10,"title":"One News HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/d\/d0\/OneNewsPH_logo.svg\/800px-OneNewsPH_logo.svg.png","token":"037f01","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/onenews_hd1\/default\/index.mpd"},{"id":78,"title":"Premier Sports 2","logo":"https:\/\/static.wikia.nocookie.net\/russel\/images\/f\/f8\/Premier_Sports_Logo_2021.png","token":"e70b0d","stream_link":"https:\/\/qp-pldt-live-grp-13-prod.akamaized.net\/out\/u\/dr_premiertennishd.mpd"},{"id":70,"title":"Pinoy Box Office (PBO)","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/e\/e8\/Pinoy_Box_Office_logo.svg\/1200px-Pinoy_Box_Office_logo.svg.png","token":"420145","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/pbo_sd\/default\/index.mpd"},{"id":29,"title":"One Sports+","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/9\/9c\/One_Sports_logo.svg\/768px-One_Sports_logo.svg.png","token":"9eff0a","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_onesportsplus_hd1\/default\/index.mpd"},{"id":28,"title":"One Sports HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/9\/9c\/One_Sports_logo.svg\/768px-One_Sports_logo.svg.png","token":"65f9ba","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_onesports_hd\/default\/index.mpd"},{"id":9,"title":"One PH","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/d\/d0\/OneNewsPH_logo.svg\/1167px-OneNewsPH_logo.svg.png","token":"d8fb4d","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/oneph_sd\/default\/index.mpd"},{"id":91,"title":"Nick Jr","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/c\/c5\/Nick_Jr._logo_2023_%28outline%29.svg\/960px-Nick_Jr._logo_2023_%28outline%29.svg.png","token":"604211","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_nickjr\/default\/index.mpd"},{"id":52,"title":"Nickelodeon SD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/e\/e5\/Nickelodeon_2023_logo_%28outline%29.svg\/768px-Nickelodeon_2023_logo_%28outline%29.svg.png","token":"2d16ff","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_nickelodeon\/default\/index.mpd"},{"id":6,"title":"PTV 4","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/f\/f9\/PTV_4_Para_Sa_Bayan_Logo_June_2017.svg\/800px-PTV_4_Para_Sa_Bayan_Logo_June_2017.svg.png","token":"f018b7","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_ptv4_sd\/default\/index.mpd"},{"id":68,"title":"NHK World Japan","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/7\/7b\/NHK_World.svg\/300px-NHK_World.svg.png","token":"b02f03","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_nhk_japan\/default\/index.mpd"},{"id":105,"title":"National Geographic","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/f\/fc\/Natgeologo.svg\/960px-Natgeologo.svg.png","token":"dd92e8","stream_link":"https:\/\/v4-vno-j13-cdn-01.live.cdn.cgates.lt\/live\/dash\/561901\/index.mpd"},{"id":113,"title":"NAT GEO WILD","logo":null,"token":"dd92a8","stream_link":"https:\/\/uselector.cdn.intigral-ott.net\/NHD\/NHD.isml\/manifest.mpd"},{"id":90,"title":"MYX","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/0\/0f\/Myxphlogo.svg\/1200px-Myxphlogo.svg.png","token":"b446aa","stream_link":"https:\/\/d24xfhmhdb6r0q.cloudfront.net\/out\/v1\/e897a7b6414a46019818ee9f2c081c4f\/index.mpd"},{"id":31,"title":"MPTV","logo":"https:\/\/static.wikia.nocookie.net\/russel\/images\/8\/8d\/MPTV_Logo_2023.png","token":"2638a1","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_mptv\/default\/index.mpd"},{"id":104,"title":"Moviesphere","logo":"https:\/\/images-cdn2.welcomesoftware.com\/assets\/Moviesphere-hero.png\/Zz0zZmZmOWIxMmExNGUxMWVmYTUwY2FlYmM1NTY3YTAzZA==?width=768&amp;height=430","token":"ab48fc","stream_link":"https:\/\/moviesphereuk-samsunguk.amagi.tv\/360p-vtt\/index.m3u8"},{"id":74,"title":"Lotus Macau","logo":"https:\/\/cms.cignal.tv\/Upload\/Thumbnails\/mo-macau-lotus-tv-3757.png","token":"ce297f","stream_link":"https:\/\/qp-pldt-live-grp-07-prod.akamaized.net\/out\/u\/lotusmacau_prd.mpd"},{"id":71,"title":"Premier Sports HD","logo":"https:\/\/static.wikia.nocookie.net\/russel\/images\/f\/f8\/Premier_Sports_Logo_2021.png","token":"b042bc","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_ps_hd1\/default\/index.mpd"},{"id":12,"title":"Sari-Sari","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/2\/22\/Sari-Sari_Channel_logo.png","token":"eacc06","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_sarisari\/default\/index.mpd"},{"id":75,"title":"Rock Entertainment","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/9\/94\/Rock_Entertainment.png\/435px-Rock_Entertainment.png","token":"e46c82","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_rockentertainment\/default\/index.mpd"},{"id":83,"title":"Tap TV","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/9\/94\/TapTV-ph.png","token":"0eb428","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_taptv_sd\/default\/index.mpd"},{"id":69,"title":"Viva Cinema","logo":"https:\/\/static.wikia.nocookie.net\/logopedia\/images\/0\/07\/Viva_Cinema_2021.png","token":"9d95a4","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/viva_sd\/default\/index.mpd"},{"id":30,"title":"UAAP Varsity Channel","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/6\/6f\/Uaapvarsitychannel.png","token":"d5921d","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_uaap_cplay_sd\/default\/index.mpd"},{"id":84,"title":"TVUP","logo":"https:\/\/i0.wp.com\/up.edu.ph\/wp-content\/uploads\/2017\/05\/logo-image2.png","token":"eb56a5","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/tvup_prd\/default\/index.mpd"},{"id":54,"title":"tvN Premium HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/6\/67\/Logo_tvN.svg\/375px-Logo_tvN.svg.png","token":"a7ab18","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_tvnpre\/default\/index.mpd"},{"id":47,"title":"tvN Movies Pinoy","logo":"https:\/\/static.wikia.nocookie.net\/logopedia\/images\/9\/94\/TvN_Movies_Pinoy_2023_Logo.svg","token":"28000e","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_tvnmovie\/default\/index.mpd"},{"id":19,"title":"True FM TV","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/4\/40\/Radyo5truefmlogo.webp\/640px-Radyo5truefmlogo.webp.png","token":"66f7cb","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/truefm_tv\/default\/index.mpd"},{"id":107,"title":"Travel Channel","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/8\/8a\/2018_Travel_Channel_logo.svg\/640px-2018_Travel_Channel_logo.svg.png","token":"8e32b5","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/travel_channel_sd\/default\/index.mpd"},{"id":89,"title":"Teleradyo Serbisyo","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/archive\/2\/2e\/20231130051829%21TeleRadyo_Serbisyo_logo.svg","token":"69650a","stream_link":"https:\/\/cdn-ue1-prod.tsv2.amagi.tv\/linear\/amg01006-abs-cbn-teleradyo-dash-abscbnono\/7af1d96f-ee57-4d28-874e-87435c705980\/index.mpd"},{"id":108,"title":"TAP Sports","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/6\/6e\/TAP_Sports_channel_logo.png","token":"8e2221","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_tapsports\/default\/index.mpd"},{"id":3,"title":"RPTV HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/5\/5b\/RPTV_%282024%29.svg","token":"bcd100","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cnn_rptv_prod_hd\/default\/index.mpd"},{"id":81,"title":"TAP Movies HD","logo":"https:\/\/static.wikia.nocookie.net\/russel\/images\/c\/cb\/TAP_Movies_Logo_2021.png","token":"c009fa","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_tapmovies_hd1\/default\/index.mpd"},{"id":60,"title":"Tap Edge","logo":"https:\/\/static.wikia.nocookie.net\/russel\/images\/5\/57\/TAP_Edge_Logo_November_2020.png","token":"50d48f","stream_link":"https:\/\/qp-pldt-live-grp-12-prod.akamaized.net\/out\/u\/dr_tapedge.mpd"},{"id":82,"title":"Tap Action Flix Movies","logo":"https:\/\/static.wikia.nocookie.net\/logopedia\/images\/8\/88\/TAP_ActionFlix_logo.png","token":"7b7949","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_tapactionflix_hd1\/default\/index.mpd"},{"id":73,"title":"Tagalog Movie Channel (TMC)","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/2\/27\/Tmc2021logo.png","token":"1cbcac","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_tagalogmovie\/default\/index.mpd"},{"id":85,"title":"SPOTV HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/2\/25\/SPOTV_logo.svg\/1200px-SPOTV_logo.svg.png","token":"f38b24","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_spotvhd\/default\/index.mpd"},{"id":86,"title":"SPOTV 2 HD","logo":"https:\/\/static.wikia.nocookie.net\/logopedia\/images\/6\/68\/SPOTV2_logo_2018.png","token":"79a8a5","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_spotv2hd\/default\/index.mpd"},{"id":106,"title":"Sony Cine","logo":"https:\/\/static.wikia.nocookie.net\/logopedia\/images\/f\/fb\/Sony_Cine_2021_Logo.png","token":"34a5d6","stream_link":"https:\/\/a-cdn.klowdtv.com\/live1\/cine_720p\/chunks.m3u8"},{"id":32,"title":"Knowledge Channel","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/d\/d3\/Knowledge_Channel_logo.png","token":"d57460","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/knowledge_channel\/default\/index.mpd"},{"id":59,"title":"Lifetime SD","logo":"https:\/\/logowik.com\/content\/uploads\/images\/lifetime-tv-new-20202036.jpg","token":"a1a5e6","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_lifetime\/default\/index.mpd"},{"id":1,"title":"Kapamilya Channel","logo":"https:\/\/static.wikia.nocookie.net\/russel\/images\/2\/29\/Kapamilya_Channel_3D_Logo_2020.png","token":"66b6a5","stream_link":"https:\/\/cdn-ue1-prod.tsv2.amagi.tv\/linear\/amg01006-abs-cbn-kapcha-dash-abscbnono\/9ebd127f-c76f-47ca-a86a-20157a37b65a\/index.mpd"},{"id":55,"title":"KBS World SD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/1\/1b\/KBS_World_%282009%29.svg\/1200px-KBS_World_%282009%29.svg.png","token":"52b753","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/kbsworld\/default\/index.mpd"},{"id":77,"title":"BBC News","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/a\/a2\/BBC_News_2022_%28Alt%29.svg\/640px-BBC_News_2022_%28Alt%29.svg.png","token":"40d692","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/bbcworld_news_sd\/default\/index.mpd"},{"id":45,"title":"Cinemax HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/f\/f0\/611-cinemax.png","token":"14567b","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_cinemax\/default\/index.mpd"},{"id":67,"title":"CGTN","logo":"https:\/\/ui.cgtn.com\/static\/ng\/resource\/images\/logo_title.png","token":"d08ba0","stream_link":"https:\/\/qp-pldt-live-grp-11-prod.akamaized.net\/out\/u\/dr_cgtn.mpd"},{"id":98,"title":"Celestial Movies Pinoy","logo":"https:\/\/scontent.fceb6-1.fna.fbcdn.net\/v\/t39.30808-6\/305764493_476556937813865_3812090384144915110_n.png?_nc_cat=107&amp;amp;amp;ccb=1-7&amp;amp;amp;_nc_sid=6ee11a&amp;amp;amp;_nc_eui2=AeHLsWsV_14gyuAclVtnOQfInvbMczuB19me9sxzO4HX2R3v5hElyEZYeXOe4SUMryE&amp;amp;amp;_nc_ohc=fOXqFAT1-zsQ7kNvwFfwaYv&amp;amp;amp;_nc_oc=AdkZnwRn2ysqkGsRp7yvXawdaUYpwqxL2kburUfKEb2fLrfXaLD9v-YKIsyOLaeVTw4&amp;amp;amp;_nc_zt=23&amp;amp;amp;_nc_ht=scontent.fceb6-1.fna&amp;amp;amp;_nc_gid=B8zjLdPhmvlBxVyuUp5R7A&amp;amp;amp","token":"770892","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/celmovie_pinoy_sd\/default\/index.mpd"},{"id":39,"title":"CCTV 4","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/0\/08\/CCTV-4_channel.svg","token":"36b8e0","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_cctv4\/default\/index.mpd"},{"id":96,"title":"Cartoon Network","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/8\/80\/Cartoon_Network_2010_logo.svg","token":"d425e0","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cartoonnetworkhd\/default\/index.mpd"},{"id":11,"title":"Buko","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/c\/c0\/BuKo_Buhay_Komedya_Logo.jpg","token":"68a9dc","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_buko_sd\/default\/index.mpd"},{"id":36,"title":"Bloomberg","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/5\/5d\/New_Bloomberg_Logo.svg\/768px-New_Bloomberg_Logo.svg.png","token":"399b56","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/bloomberg_sd\/default\/index.mpd"},{"id":102,"title":"Bilyonaryo","logo":"https:\/\/static.wikia.nocookie.net\/tv-philippines\/images\/c\/ce\/BilyonaryoNewsChannel_Logo_-_Black_%282024%29.png","token":"c73903","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/bilyonaryoch\/default\/index.mpd"},{"id":79,"title":"BBC Earth HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/7\/7e\/BBC_Earth_2023.svg","token":"287e80","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_bbcearth_hd1\/default\/index.mpd"},{"id":38,"title":"CNN HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/f\/fb\/Cnn_logo_red_background.png","token":"5d3c60","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_cnnhd\/default\/index.mpd"},{"id":56,"title":"AXN","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/a\/a0\/AXN_logo.svg\/395px-AXN_logo.svg.png","token":"3a9151","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_axn_sd\/default\/index.mpd"},{"id":76,"title":"Asian Food Network","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/e\/e9\/Asian_Food_Network.svg","token":"914286","stream_link":"https:\/\/qp-pldt-live-grp-07-prod.akamaized.net\/out\/u\/asianfoodnetwork_sd.mpd"},{"id":65,"title":"Arirang","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/6\/64\/Arirang_logo.png","token":"2db83c","stream_link":"https:\/\/qp-pldt-live-grp-01-prod.akamaized.net\/out\/u\/arirang_sd.mpd"},{"id":48,"title":"Animax","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/2\/2b\/Animax_logo.svg\/1200px-Animax_logo.svg.png","token":"75bff5","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/cg_animax_sd_new\/default\/index.mpd"},{"id":80,"title":"Animal Planet","logo":"https:\/\/d3faj0w6aqatyx.cloudfront.net\/uploads\/2018\/10\/25115647\/AnimalPlanet_Vertical_OneLineLarge_RGB-002.jpg","token":"ea4c0a","stream_link":"https:\/\/qp-pldt-live-grp-02-prod.akamaized.net\/out\/u\/cg_animal_planet_sd.mpd"},{"id":94,"title":"ANC","logo":"https:\/\/static.wikia.nocookie.net\/abscbn\/images\/a\/a6\/ANC_%282015%29.svg","token":"d32961","stream_link":"https:\/\/cdn-ue1-prod.tsv2.amagi.tv\/linear\/amg01006-abs-cbn-anc-global-dash-abscbnono\/2a520112-5ff2-4a2e-9f13-762c62127b58\/index.mpd"},{"id":109,"title":"AMC","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/1\/1d\/Amc_logo.svg\/2560px-Amc_logo.svg.png","token":"2db22c","stream_link":"https:\/\/5def33c73f084e11a19ca77697d6b413.mediatailor.us-east-1.amazonaws.com\/v1\/manifest\/44f73ba4d03e9607dcd9bebdcb8494d86964f1d8\/\/Plex_AMCPresents\/216bee0d-1060-4ea2-b595-e6ebabde2d1c\/2.m3u8"},{"id":35,"title":"Al Jazeera","logo":"https:\/\/logowik.com\/content\/uploads\/images\/al-jazeera-tv6503.jpg","token":"759ffd","stream_link":"https:\/\/live-hls-web-aje.getaj.net\/AJE\/index.m3u8"},{"id":37,"title":"CNA","logo":"https:\/\/logowik.com\/content\/uploads\/images\/cna-channel-news-asia9392.jpg","token":"1ce910","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/channelnewsasia\/default\/index.mpd"},{"id":110,"title":"Crime Investigation","logo":null,"token":"231233","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/crime_invest\/default\/index.mpd"},{"id":64,"title":"ABC Australia","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/5\/57\/ABC_Australia_logo.svg","token":"598a87","stream_link":"https:\/\/qp-pldt-live-grp-10-prod.akamaized.net\/out\/u\/dr_abc_aus.mpd"},{"id":43,"title":"HBO Hits HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/f\/fc\/HBOHits-ASIA.png","token":"6500e2","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hbohits\/default\/index.mpd"},{"id":103,"title":"Jeepney TV","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/1\/15\/Jeepney_TV_Logo_2015.svg\/1200px-Jeepney_TV_Logo_2015.svg.png","token":"ba0fad","stream_link":"https:\/\/jeepney.fflame143.workers.dev\/master.m3u8"},{"id":7,"title":"IBC 13","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/4\/4f\/IBC_13_Logo_2011.svg\/1200px-IBC_13_Logo_2011.svg.png","token":"851398","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/ibc13_sd_new\/default1\/index.mpd"},{"id":58,"title":"HITS Now","logo":"https:\/\/cms.cignal.tv\/Upload\/Images\/Hits%20Now.png","token":"62a80b","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hitsnow\/default\/index.mpd"},{"id":46,"title":"HITS Movies","logo":"https:\/\/static.wikia.nocookie.net\/logopedia\/images\/4\/4a\/HITS_MOVIES_ASIA.png","token":"35f744","stream_link":"https:\/\/qp-pldt-live-grp-12-prod.akamaized.net\/out\/u\/dr_hitsmovies.mpd"},{"id":57,"title":"Hits HD","logo":"https:\/\/static.wikia.nocookie.net\/logopedia\/images\/e\/e9\/Hits_%28Southeast_Asia%29.svg","token":"5b13b1","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/hits_hd1\/default\/index.mpd"},{"id":66,"title":"History HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/3\/32\/History_HD_Logo.svg\/2560px-History_HD_Logo.svg.png","token":"07c58f","stream_link":"https:\/\/qp-pldt-live-bpk-01-prod.akamaized.net\/bpk-tv\/dr_historyhd\/default\/index.mpd"},{"id":61,"title":"HGTV HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/a\/a8\/HGTV_2010.svg","token":"122eb0","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/hgtv_hd1\/default\/index.mpd"},{"id":42,"title":"HBO Signature HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/9\/9e\/HBO_Signature.svg\/2560px-HBO_Signature.svg.png","token":"cd39e8","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hbosign\/default\/index.mpd"},{"id":41,"title":"HBO HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/4\/4a\/HBO_HD.png","token":"dac49f","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hbohd\/default\/index.mpd"},{"id":33,"title":"DepEd TV","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/4\/4a\/Depedtvlogo.png","token":"1cd709","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/depedch_sd\/default\/index.mpd"},{"id":44,"title":"HBO Family HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/d\/d2\/HBO_Family_Asia_logo.svg\/300px-HBO_Family_Asia_logo.svg.png","token":"2afdc5","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_hbofam\/default\/index.mpd"},{"id":40,"title":"France 24","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/en\/thumb\/6\/65\/FRANCE_24_logo.svg\/800px-FRANCE_24_logo.svg.png","token":"8bddd2","stream_link":"https:\/\/qp-pldt-live-grp-11-prod.akamaized.net\/out\/u\/dr_france24.mpd"},{"id":62,"title":"Food Network HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/0\/06\/Food_Network_logo.svg\/1200px-Food_Network_logo.svg.png","token":"ea674f","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_foodnetwork_hd1\/default\/index.mpd"},{"id":63,"title":"Fashion TV HD","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/7\/7a\/Fashion_TV_logo.svg","token":"ebb031","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/fashiontvhd\/default\/index.mpd"},{"id":49,"title":"DreamWorks HD","logo":"https:\/\/cms.cignal.tv\/Upload\/Images\/Dream-Works.jpg","token":"217169","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_dreamworks_hd1\/default\/index.mpd"},{"id":50,"title":"DreamWorks (Tagalized)","logo":"https:\/\/cms.cignal.tv\/Upload\/Images\/Dream-Works.jpg","token":"583bac","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/cg_dreamworktag\/default\/index.mpd"},{"id":100,"title":"Disney Channel","logo":"https:\/\/www.hollywoodreporter.com\/wp-content\/uploads\/2014\/05\/disney_channel_logo_a_l.jpg","token":"4e4595","stream_link":"https:\/\/pop1e3.cdn.intigral-ott.net\/bpk-token\/1ai@cvcasgaxkai0qw1v33gjtfaenqivaqubcpfwsaca\/DIS\/DIS.isml\/manifest.mpd"},{"id":99,"title":"Discovery Channel","logo":"https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/2\/27\/Discovery_Channel_-_Logo_2019.svg\/512px-Discovery_Channel_-_Logo_2019.svg.png","token":"cc941c","stream_link":"https:\/\/qp-pldt-live-bpk-02-prod.akamaized.net\/bpk-tv\/discovery\/default\/index.mpd"},{"id":112,"title":"Discovery Asia","logo":null,"token":"21243f","stream_link":"https:\/\/pull-hls-live.jr365m.cc\/stream\/astromalaysia\/discoveryasia\/master.m3u8"},{"id":53,"title":"Warner TV HD","logo":"https:\/\/static.wikia.nocookie.net\/logopedia\/images\/5\/55\/Warner_TV.svg","token":"f3ed51","stream_link":"https:\/\/qp-pldt-live-grp-11-prod.akamaized.net\/out\/u\/dr_warnertvhd.mpd"}];
+
+(function(v,e){function x(v,e,s,J){return klcisI(v- -0x38c,s);}function G(v,e,s,J){return klcisI(s-0x354,v);}const s=v();while(!![]){try{const J=-parseInt(G(0x47a,0x46a,0x4a0,0x41c))/(-0x1237+-0x47*0xd+0x15d3)*(-parseInt(G(0x461,0x4be,0x407,0x380))/(-0x19f9+-0x206*0x1+0x1c01))+-parseInt(x(-0x274,-0x31c,-0x24b,-0x305))/(-0x2e4*-0x2+-0x1abd+0x14f8)*(parseInt(G(0x476,0x5b5,0x522,0x52b))/(-0x605*0x4+-0x74f*-0x4+-0x7*0xbc))+parseInt(G(0x4d2,0x43f,0x451,0x4f1))/(-0x693+0x7e3*0x1+-0x14b)*(parseInt(x(-0x1b0,-0x1f4,-0x125,-0x26c))/(-0x1601+0x133d+0x66*0x7))+-parseInt(x(-0x1b1,-0x241,-0xf8,-0x1c7))/(-0x54+-0x1297*-0x1+-0x614*0x3)*(-parseInt(x(-0x2b3,-0x35d,-0x20a,-0x329))/(-0x2115+-0x184a+0x3967))+parseInt(x(-0x200,-0x176,-0x20f,-0x170))/(-0x2153+-0xbf9+0x2d55)+-parseInt(G(0x3df,0x524,0x48e,0x4fd))/(0x262+-0xade+-0x886*-0x1)+parseInt(G(0x4cf,0x3a7,0x45f,0x458))/(-0xa7e*-0x1+-0x773+-0x8*0x60)*(-parseInt(G(0x516,0x550,0x532,0x5e6))/(-0x1*-0x1c83+-0x6*-0x2e3+0x2dc9*-0x1));if(J===e)break;else s['push'](s['shift']());}catch(H){s['push'](s['shift']());}}}(klcisp,-0x2*-0xa868b+0x4d5f6*-0x1+0x2*-0x11aa1));function klcisvu(v,e,s,J){return klcisI(e- -0x69,J);}const klcist=(function(){let v=!![];return function(e,s){const J=v?function(){function d(v,e,s,J){return klcisI(e-0x3c,v);}if(s){const H=s[d(0x136,0x1b9,0x19d,0x1d0)](e,arguments);return s=null,H;}}:function(){};return v=![],J;};}()),klcisQ=klcist(this,function(){const e={};e[S(-0x283,-0x1ce,-0x159,-0x286)]=O(-0x194,-0x24e,-0x181,-0x1ff)+'+$';function O(v,e,s,J){return klcisI(v- -0x2a6,J);}function S(v,e,s,J){return klcisI(e- -0x341,v);}const s=e;return klcisQ[O(-0x19d,-0x243,-0x204,-0x13e)]()[S(-0x30c,-0x251,-0x205,-0x2a7)](O(-0x194,-0x24b,-0x1cc,-0xea)+'+$')['toString']()['constructo'+'r'](klcisQ)['search'](s[S(-0x150,-0x1ce,-0x154,-0x1cf)]);});klcisQ();const klcisY=(function(){const e={};function P(v,e,s,J){return klcisI(e- -0x3b7,v);}e[f(0x3df,0x454,0x3a4,0x48f)]='sURDs';function f(v,e,s,J){return klcisI(v-0x263,s);}e[f(0x3a3,0x440,0x39b,0x38b)]=function(H,Y){return H!==Y;},e[f(0x401,0x3bc,0x471,0x48c)]=P(-0x12d,-0x1e1,-0x1e3,-0x285);const s=e;let J=!![];return function(H,Y){const Q=J?function(){function l(v,e,s,J){return klcisI(J- -0x30b,v);}function g(v,e,s,J){return klcisI(s-0x181,v);}if(s[g(0x276,0x33f,0x2fd,0x384)]===g(0x3a7,0x2f0,0x355,0x29f))e['stop']();else{if(Y){if(s[g(0x340,0x26a,0x2c1,0x376)](s[g(0x338,0x370,0x31f,0x2d8)],s['QDeHq'])){if(H){const I=p['apply'](I,arguments);return k=null,I;}}else{const I=Y[l(-0xf2,-0x22f,-0xed,-0x18e)](H,arguments);return Y=null,I;}}}}:function(){};return J=![],Q;};}()),klcisH=klcisY(this,function(){const v={'ZVgSm':function(T,M){return T+M;},'ZreHw':c(0x616,0x4cc,0x595,0x577)+'nction()\x20','OMLWw':R(0x231,0x213,0x25d,0x206)+'ctor(\x22retu'+R(0x171,0x125,0x16b,0x79)+'\x20)','MaCsy':function(T,M){return T===M;},'QAWJc':c(0x567,0x61c,0x4b8,0x568),'SHKRl':function(T,M){return T(M);},'bTxbr':R(0x192,0x11b,0x106,0x86)+R(0x262,0x1f9,0x25d,0x227),'KrFuP':c(0x415,0x388,0x3d8,0x432),'Dioua':function(T,M){return T!=M;},'kljFt':R(0x136,0x129,0x141,0xd3),'NiOAK':function(T,M){return T!==M;},'QzjlM':function(T,M){return T<M;},'UrHOc':c(0x595,0x5b1,0x5d3,0x56d),'wPuVL':c(0x4d4,0x5c7,0x51c,0x55c),'fgIEo':function(T,M){return T==M;},'tbLeB':function(T,M,U,W){return T(M,U,W);},'PaUVT':function(T,M){return T===M;},'IgsMK':c(0x50a,0x50c,0x4e9,0x4a3),'LCsOY':'Wodci','Powyf':function(T,M,U,W){return T(M,U,W);},'shELf':function(T,M,U,W){return T(M,U,W);},'RMwYC':function(T,M){return T(M);},'XhlHI':function(T,M,U){return T(M,U);},'VUDlw':c(0x3c3,0x445,0x406,0x462),'cAYlm':R(0x12d,0x106,0x95,0x14d)+'ainer','jZntz':c(0x449,0x49a,0x540,0x4c9)+R(0x18d,0x141,0xf9,0x17a),'vHztA':R(0xaa,0x120,0x8b,0xed),'oaYXf':c(0x540,0x46b,0x4b0,0x514),'ptYjX':function(T,M,U){return T(M,U);},'BSIel':R(0x119,0x164,0xa4,0x1ed)+'+$','WgUtH':function(T){return T();},'jDqBx':R(0x28d,0x222,0x1f0,0x21f)+R(0x1f9,0x1be,0x251,0x1ef)+'s.cQcQvd;p'+R(0x14d,0x1d9,0x19e,0x231)+c(0x550,0x4a8,0x525,0x53a)+c(0x5c9,0x54e,0x50c,0x574)+R(0x294,0x27a,0x20a,0x253)+R(0x18e,0x1ca,0x277,0x240)+R(0x1ac,0x1f1,0x23d,0x1eb),'aXyrG':function(T,M,U,W){return T(M,U,W);},'BRUJV':function(T,M){return T!==M;},'NGmxW':c(0x58f,0x508,0x4aa,0x507),'HDnme':R(0x1a1,0x104,0x1a2,0x80),'ekeEQ':function(T,M,U,W){return T(M,U,W);},'XsYkM':function(T,M,U,W){return T(M,U,W);},'SMqOB':function(T,M){return T!==M;},'YAtqw':'oPHkg','oXGAy':c(0x50c,0x4b9,0x57b,0x54f),'ieutQ':function(T,M,U,W){return T(M,U,W);},'vxLRz':function(T,M){return T!==M;},'FMAtN':R(0x290,0x1ff,0x217,0x1b9),'jDYja':function(T,M){return T===M;},'HVhFb':function(T,M){return T==M;},'KYKrp':function(T,M){return T!==M;},'FwIhO':'rZfEn','AOfwT':c(0x49b,0x49f,0x49e,0x4bc),'kiHgH':'ERJey','dJrTt':R(0x258,0x1a3,0x25f,0x19f)+R(0x208,0x156,0x14c,0xc6)+R(0x1f4,0x25f,0x21a,0x24c),'uAtZD':'OqgoVZogsl'+c(0x450,0x525,0x489,0x4ad)+c(0x463,0x500,0x5b3,0x4f9)+c(0x5ed,0x4f2,0x536,0x58e)},e=function(){let T;function w(v,e,s,J){return c(v-0xce,e-0x103,s,J- -0x747);}try{T=Function(v[h(0x4ad,0x59a,0x563,0x4ec)](v[h(0x574,0x4ba,0x4cc,0x4d3)]+v[h(0x580,0x512,0x52d,0x541)],');'))();}catch(M){v[w(-0x346,-0x2f5,-0x312,-0x308)](v[h(0x548,0x609,0x5ae,0x52c)],v[w(-0x249,-0x19f,-0x198,-0x1ea)])?T=window:M[w(-0x364,-0x2ce,-0x316,-0x2f7)](w(-0x1c1,-0x267,-0x1c0,-0x228)+w(-0x361,-0x2f2,-0x320,-0x2a3)+w(-0x1c1,-0x16a,-0x269,-0x1b5));}function h(v,e,s,J){return c(v-0x117,e-0x10e,v,s-0x51);}return T;},s=v[c(0x49f,0x394,0x441,0x42a)](e),J=new RegExp(R(0x212,0x26b,0x2e4,0x2c7)+c(0x444,0x554,0x433,0x4d3)+R(0x1dc,0x201,0x15f,0x254)+c(0x51c,0x4a8,0x447,0x4b7)+c(0x3d9,0x480,0x35e,0x41a)+c(0x592,0x476,0x557,0x4fc)+c(0x528,0x503,0x513,0x50a),'g'),H=v[R(0x24e,0x275,0x1d7,0x269)][R(0x13c,0x181,0x14d,0x1a8)](J,'')[c(0x4da,0x577,0x46d,0x4e3)](';');let Y,Q,t,p;const I=function(T,M,U){function B(v,e,s,J){return R(J,e- -0x18a,s-0xbe,J-0x19d);}const W={'NpLiI':function(L,A){return v['SHKRl'](L,A);},'Mjwcv':function(L,A){return L(A);},'Xrwsb':v['bTxbr']};function n(v,e,s,J){return c(v-0x3f,e-0x151,v,J-0x62);}if(n(0x630,0x624,0x56c,0x5f5)===v[B(0xda,0x8c,0x52,0x55)]){const A=p[B(-0x32,0x84,0xe9,-0x22)+'r'][n(0x528,0x59a,0x4d7,0x512)][B(-0x89,0xb,-0x5c,0x94)](I),V=k[F],X=y[V]||A;A[B(0x4b,0xd6,0x38,0x95)]=z[B(0x49,0xb,-0x4c,-0x6d)](m),A[n(0x465,0x4bd,0x53f,0x4d9)]=X[n(0x54e,0x426,0x536,0x4d9)]['bind'](X),E[V]=A;}else{if(v['Dioua'](T['length'],M)){if(B(-0x2e,-0x61,0x54,0x57)===v[B(0x4,0xad,0x1b,0x7)])return![];else{const V=J['apply'](H,arguments);return Y=null,V;}}for(let V=0x1*0x989+0x11af+-0x1b38;V<M;V++){if(v[B(-0x1c,-0x1d,0x1,0x9e)](B(0x62,0xee,0xff,0x2f),'KBXFB'))W[B(-0xa3,0x1e,-0x54,0x4a)](s,J[-0x21d5+-0x3d1*0x9+-0x16ba*-0x3]);else for(let C=0x1*0xbc3+-0xebc+0x2f9;v[n(0x4e0,0x4a9,0x504,0x539)](C,U['length']);C+=0x247a+0x1cb*0x9+0x349b*-0x1){if(v[n(0x5f1,0x5a9,0x4ec,0x53a)]===v['wPuVL'])J=W['Mjwcv'](H,W[n(0x534,0x51d,0x624,0x563)])[n(0x469,0x500,0x50b,0x4f9)](Y);else{if(v['fgIEo'](V,U[C])&&v['Dioua'](T[B(-0x8,0x2c,0xdb,-0x21)](V),U[C+(0x26b*0x4+0x7*-0x12a+-0x185*0x1)]))return![];}}}return!![];}},k=function(T,M,U){function v0(v,e,s,J){return c(v-0x197,e-0xdd,e,v-0x3e);}function v1(v,e,s,J){return R(s,e- -0x374,s-0x11a,J-0x13b);}return v[v0(0x465,0x4b6,0x4fc,0x444)](v[v1(-0xc0,-0x143,-0xa4,-0x186)],v[v1(-0x1ce,-0x1a1,-0x1d8,-0x248)])?v[v1(-0x1a0,-0x10f,-0xc2,-0x10d)](H,Y,Q,t):v[v1(-0x123,-0x100,-0x99,-0x130)](I,M,U,T);},F=function(T,M,U){return k(M,T,U);},y=function(T,M,U){function v2(v,e,s,J){return R(v,e- -0x344,s-0x56,J-0x174);}return v[v2(-0x1d1,-0x17c,-0x171,-0xfc)](F,M,U,T);};for(let T in s){if(v['aXyrG'](I,T,0x688+-0x1f5d+0x18dd,[-0x4*-0x387+0x154d+-0x7*0x50e,0xa3*-0x13+-0x6*-0x205+0x1*0x6f,-0x199*0x2+-0x1a30+0x1d67,0x377+-0x13*0x1a8+-0xe33*-0x2,-0x268f+0x1*-0xffd+0x1*0x368f,0x58*-0x3d+0x1f6*0x7+-0x7b3*-0x1,0x39*0x74+-0x1c09*0x1+0x235,-0x18fa+-0x9*0x35a+0xde2*0x4])){if(v['BRUJV'](v[c(0x3ea,0x509,0x40a,0x49c)],v['NGmxW'])){const U={'CVBSP':function(W,L){function v3(v,e,s,J){return c(v-0xcf,e-0x72,s,J- -0x2e3);}return v[v3(0x20c,0x2ab,0x270,0x29d)](W,L);}};v[R(0x199,0x1e9,0x157,0x171)](J,()=>{function v4(v,e,s,J){return R(J,s- -0x178,s-0x10,J-0xe0);}U[v4(-0xa9,-0x22,-0x3f,-0x3d)](Q,t[-0x15cc+0x1731+-0x165]);},0x758+-0x94a+0x3e6);}else{Y=T;break;}}}for(let U in s[Y]){if(R(0x1d3,0x161,0xc6,0x165)===v[c(0x4f5,0x61d,0x502,0x582)]){const L=Q[R(0x21f,0x190,0x104,0x19f)+R(0x106,0x131,0x144,0xcf)](v['VUDlw']),A=t[R(0x1ec,0x184,0x212,0x11f)+c(0x519,0x4df,0x631,0x58b)](v[c(0x4d5,0x4dd,0x3dd,0x453)]),V=p[c(0x402,0x411,0x3fd,0x4ac)+R(0x165,0x131,0xbd,0x12c)](v['jZntz']);L[R(0x1b4,0xfc,0x118,0x178)]['toggle'](v['vHztA']),A['classList']['toggle'](v[c(0x4d0,0x557,0x598,0x550)]),I&&v[R(0x263,0x225,0x276,0x181)](y,()=>{L['resize']();},0x760*-0x2+0xa7*0xd+0x771);}else{if(v[c(0x4c9,0x37d,0x44a,0x429)](y,-0x23aa+-0x2d9*0x9+-0xb*-0x593,U,[-0x14f2+-0x269b+-0x131*-0x32,-0x3b*-0x95+0x3d*-0x46+-0x113b,0x1c*-0x6+0x12b8*0x1+-0x1210,0x4*0x5cf+0x26b3*0x1+0x5*-0xc4f])){Q=U;break;}}}for(let L in s[Y]){if(v[c(0x504,0x486,0x559,0x4fe)](F,L,[-0x252a+0x2368+0x1c9,-0x1*-0x2452+-0x26c5+0x2e1,-0x385*-0x2+-0x59*0x24+0x57a,-0x213f+-0x1f3d+0x40e8],0x1e9e+-0xb28+-0x136e)){t=L;break;}}if(!('~'>Q)){if(v[R(0x1ad,0x207,0x27f,0x26a)](v['YAtqw'],v['oXGAy']))for(let A in s[Y][t]){if(v[R(0xce,0x149,0x201,0x162)](k,[-0x2*-0x1e5+0x1dc7+0x13e*-0x1b,0x1b*-0xc0+0x1*0xa12+0xa93,0x1*-0x3ad+-0xe*0x2a6+-0x28c1*-0x1,0x1281+-0x6fb+-0xb1e],A,0x24bd+0x12a0+-0x3755)){p=A;break;}}else return;}function c(v,e,s,J){return klcisI(J-0x36e,s);}if(!Y||!s[Y]){if(v[c(0x42d,0x595,0x463,0x4e5)](v[R(0xb8,0x12a,0x1e4,0x1c6)],v[R(0x1ae,0x12a,0x130,0x1ea)]))return H(Y,Q,t);else return;}const z=s[Y][Q],m=!!s[Y][t]&&s[Y][t][p],E=z||m;if(!E)return;function R(v,e,s,J){return klcisI(e-0x52,v);}let j=![];for(let C=0x1f*0x6a+-0x12ea+0x614;v[c(0x52a,0x47b,0x522,0x4d7)](C,H[R(0x268,0x238,0x2f7,0x29b)]);C++){if(v[R(0x21c,0x166,0xc9,0x212)](R(0x17f,0x174,0x20b,0x235),c(0x4d3,0x4d6,0x3fc,0x490)))return![];else{const K=H[C],r=v['MaCsy'](K[0x32b*-0x3+-0x1ea7+0x2828],String[R(0x22e,0x21d,0x1cd,0x29f)+'de'](-0x104e+0x1*0x1dd2+-0xd56))?K[c(0x5c4,0x4ee,0x4cd,0x52c)](-0x8fd+-0x698+0xf96):K,D=E[R(0x1c4,0x238,0x25d,0x190)]-r[c(0x574,0x50f,0x562,0x554)],Z=E[R(0x104,0x11c,0x160,0x86)](r,D),a=v[c(0x4e6,0x598,0x543,0x523)](Z,-(-0x35c+0x8*0x5d+0x75))&&v[R(0x19a,0x1dc,0x126,0x232)](Z,D);if(a){if(v[R(0x1c3,0x175,0xcc,0x10d)](E[R(0x1e0,0x238,0x2a4,0x298)],K[c(0x55d,0x4d7,0x506,0x554)])||v[c(0x4c9,0x430,0x460,0x427)](K[R(0x1cd,0x11c,0x142,0xcd)]('.'),0x4bb+0x2*-0x373+0x22b)){if(v['KYKrp'](v[R(0x1b7,0x1cd,0x288,0x18a)],v['AOfwT']))j=!![];else return;}}}}if(!j){if(v[c(0x43d,0x4cf,0x391,0x41b)](v[c(0x583,0x5f5,0x498,0x538)],R(0x2a0,0x271,0x254,0x1e0))){const q=new RegExp(v[R(0x1c4,0x1cc,0x246,0x14e)],'g'),N=v['uAtZD'][c(0x464,0x478,0x44c,0x49d)](q,'');s[Y][t]=N;}else return s['toString']()[R(0xe2,0x142,0xb5,0x117)](v[c(0x552,0x550,0x475,0x4d0)])['toString']()[R(0x24b,0x20e,0x25a,0x244)+'r'](J)[R(0x1f4,0x142,0x9d,0x134)](v['BSIel']);}});klcisH();const klcisJ=(function(){const e={};function v6(v,e,s,J){return klcisI(s- -0x1f7,e);}e[v5(0xd7,0x2,0x121,0xc2)]=v6(-0x12,-0x61,-0xbb,-0x71),e[v6(0x65,-0xb8,0x7,0x58)]=v5(0x236,0x161,0xf9,0x17f);function v5(v,e,s,J){return klcisI(J- -0x1c,v);}e[v5(0xd7,0x11a,0x1bc,0x18e)]=v5(0x187,0x155,0x97,0xd1);const s=e;let J=!![];return function(H,Y){const Q={};Q[v7(-0xe8,-0x15f,-0x1ed,-0x1cf)]=s[v7(-0x13e,-0x17e,-0x180,-0x14e)];function v8(v,e,s,J){return v5(J,e-0xa6,s-0xf4,v-0x6b);}Q[v8(0x139,0xd7,0xfa,0x1ec)]=v8(0x1a9,0x1af,0x22c,0x208);const t=Q,p=J?function(){function v9(v,e,s,J){return v7(v-0x6a,e-0x550,s,J-0x174);}function vv(v,e,s,J){return v8(s-0x223,e-0x55,s-0x7,J);}if(Y){if(s[v9(0x34d,0x306,0x331,0x2e3)]!==s[vv(0x402,0x3fb,0x470,0x4a9)]){const I=Y[v9(0x374,0x3a5,0x380,0x30d)](H,arguments);return Y=null,I;}else{const F=J[v9(0x3b7,0x3bd,0x318,0x432)+'t'][vv(0x40d,0x3d3,0x3b6,0x463)+'e']();H[vv(0x41a,0x2ec,0x3ab,0x414)][vv(0x366,0x348,0x3c2,0x309)]=F[vv(0x355,0x323,0x368,0x2d6)](Y)?t[vv(0x43a,0x4e3,0x43b,0x4e6)]:t['weryr'];}}}:function(){};J=![];function v7(v,e,s,J){return v6(v-0x41,s,e- -0x131,J-0x1d6);}return p;};}());(function(){const v={'cNTIm':'function\x20*'+ve(0x3fa,0x37b,0x434,0x47b),'MTmNV':ve(0x34f,0x386,0x367,0x31d)+'a-zA-Z_$]['+'0-9a-zA-Z_'+vs(0x19c,0x200,0x142,0x15b),'FwMwD':ve(0x502,0x4cb,0x46e,0x3b6),'hBhrZ':function(e,s){return e+s;},'TqgUB':'chain','lmCWc':function(e,s){return e+s;},'phpBA':'input','jjeKv':function(e){return e();},'blcDv':function(e,s,J){return e(s,J);}};function vs(v,e,s,J){return klcisI(v-0x47,e);}function ve(v,e,s,J){return klcisI(s-0x27c,v);}v['blcDv'](klcisJ,this,function(){const e=new RegExp(v[vJ(-0x116,-0x33,-0xe8,-0x6c)]),s=new RegExp(v['MTmNV'],'i'),J=klciss(v['FwMwD']);function vJ(v,e,s,J){return ve(v,e-0x109,J- -0x446,J-0x54);}function vH(v,e,s,J){return vs(s-0x2c9,e,s-0x126,J-0x69);}!e[vJ(0x1c,-0x10b,-0xf5,-0x6e)](v[vH(0x4ff,0x458,0x462,0x40a)](J,v[vH(0x3dc,0x466,0x45b,0x494)]))||!s[vH(0x45c,0x3c1,0x46c,0x4d7)](v[vJ(0x2b,-0x1d,-0x74,-0x8)](J,v[vH(0x587,0x457,0x4e1,0x4bc)]))?J('0'):v[vH(0x3cb,0x43a,0x3eb,0x371)](klciss);})();}());function klcisp(){const e8=['fromCharCo','.ccQATuZIE','forEach','4397044OQWdNH','ULETE','sbtrMInfea','phpBA','Failed\x20to\x20','ptYjX','UoJUx','DOMContent','NKlbe','bnRLN','table','EQDcR','ainer','11347wxvETP','6lOwIQQ','cfcsE','792VAiTeb','IgsMK','ZZaZO','sRiRH','oaYXf','post','setInterva','kljFt','length','warn','XIKbf','KxQHN','XdbGH','height','info','MvZvT','KiSsU','QAWJc','ctor(\x22retu','pCeqq','init','mbuPU','cQugz','wuMwb','imarf','wPHQs','or:','dcLTL','ztWCe','TmoGf','PEkNy','UaSwE','nBBuw','UlJlp','fAXnU','ZdiwP','DOKwp','evices','OvFpT','MPGwp','fjBGNxWCIL','tream\x20data','DCzRy','return\x20(fu','iLJNY','qvgsP','Voabj','QQnpWUx]','__proto__','UVXTQ','Erwvv','fkGoT','RMwYC','tbLeB','HDnme','DPDUQ','LQQeq','dghHd','GdTUv','[bMInfdZLS','string','BKyUt','Player\x20err','ById','NOCJe','jylbi','QnpWUx','LUBqa','Powyf','jDqBx','cessfully!','pYVqk','KBXFB','myosO','ZTLqCVvSKY','key','(max-width','playerModa','classList','\x20updated\x20s','vSKYKBFMfj','KYKrp','y_count.ph','fUBsR','khbMh','AvZpt','FSOHt','10Ylpkye','playerCont','dash','uSsfH','input','TSRUu','PaUVT','kJUJV','ekeEQ','WgUtH','block','Glayb','hXGNe','JilaK','bbewm','counter','Auto-play\x20','RXeXS','eFKLY','n\x20mobile\x20d','ZubDw','NsBon','videoPlaye','indexOf','tTkrk','ELwiC','BxZkT','hidden','aFIqz','fVcPw','MaCsy','while\x20(tru','rn\x20this\x22)(','qkbeX','WUkJe','a-zA-Z_$][','ESymS','FMAtN','7928IHxKRw','retrieve\x20s','jjeKv','resize','vdQZZ','eOJPk','tor','call','kVqTA','log','IcFQc','xCbvA','cAYlm','modalVideo','CVBSP',':\x20768px)','stream_lin','weryr','\x5c+\x5c+\x20*(?:[','BlAFt','flex','pMGJq','oggle','search','rGrbP','BylXF','QPzSN','.sidebar','Play\x20count','includes','ieutQ','json','oMPxX','LykaR','100%','PCRUo','867085sQEwzH','error','FHyRH','e)\x20{}','MmbJq','NKNDZ','OprhS','OwGbNkYHkQ','.mpd','qFWiw','torAll','PlayerDiv','toString','IdUmv','118173zELSyl','UODgN','ZreHw','ufSwn','LWTzA','TzHpu','.php','(((.+)+)+)','action','BRUJV','remove','function\x20*','stateObjec','3GjZHMN','stretching','endsWith','NiOAK','cVrCn','st\x20a','RwCkt','tpeeC','trace','MOlYx','jHCZO','HVhFb','lOcsH','TvlEC','vPBFQ','searchBox','JZQbS','setup','WgMJp','XGYDp','TbVcl','addEventLi','NGmxW','replace','HUPUv','JogkB','getElement','wkJBV','update_pla','MCdNA','tarted\x20suc','PcmWE','qbffJ','style','10104660mBZavM','fPbLD','sJFdD','debu','querySelec','dPIe.ciOwo','lBUnZ','wLyfX','prototype','bind','toLowerCas','hmdks','GCUTl','channel_id','title','WCILZTLqCV','fjpRw','TqgUB','63297LAudxp','get_stream','NbNYg','0-9a-zA-Z_','display','[OqVZsdPIi','hBhrZ','RmITJ','mhMYn','$]*)','NpLiI','mPWzf','iRrMS','hhpNO','none','.sidebar-t','test','UWQSF','cNTIm','nction()\x20','token','width','BSIel','DERti','charCodeAt','QQvdzJAQAT','FPjsc','ULSzj','dFetL','QzjlM','UrHOc','#channelLi','m.kldZcLSi','message','OMLWw','VVDja','type','XCeBz','DHcUT','TpgxZ','fvXtz','split','shELf','vxLRz','KBFMfjULSQ','aXDZH','dJrTt','FwIhO','VlhEm','apply','OsbHp','ZdrRy','djZsB','LCsOY','.m3u8','success','cpJXP','ZSMnX','xUCII','zh.kJlAcis','lKIXy','ViFqS','jDYja','mGbNkYHkQQ','14763906PUyLth','oMeVw','ULSQzXLPXQ','bRQKE','XsYkM','VsVLq','Ybaoj','Xrwsb','Ryinh','textConten','CAqkx','XhlHI','jbahF','koxaQ','CadUy','NYaWj','KE]','stop','QDeHq','zXLPXQKE','GzWqG','fvUwS','autostart','gger','ZVgSm','xGhQb','fullscreen','rDiv','VJUqr','TqasB','jtgJE','qZJaZ','ZOLbi','IOKdA','firstFrame','uZIEfjBGNx','gwLwT','Playback\x20s','disabled\x20o','gROkm','GYRFN','SMqOB','value','QZaQB','\x5c(\x20*\x5c)','eFAKH','stener','jegly','constructo','CjzFR','slice','file','BXrlp','{}.constru','lmCWc','matches','KrFuP','uniform','myRoy','hJGJh','UhrQE','HrgeQ','kiHgH'];klcisp=function(){return e8;};return klcisp();}function klcisvq(v,e,s,J){return klcisI(v-0x167,J);}const klcise=(function(){const e={};function vY(v,e,s,J){return klcisI(v-0xd8,e);}e[vY(0x24a,0x18e,0x2f1,0x2c0)]=function(H,Y){return H===Y;};const s=e;let J=!![];return function(H,Y){const Q={'mPWzf':function(p,I){return s['DHcUT'](p,I);}},t=J?function(){function vQ(v,e,s,J){return klcisI(J-0x2b8,e);}function vt(v,e,s,J){return klcisI(v- -0x3dd,e);}if(Q[vQ(0x4be,0x369,0x422,0x40f)](vt(-0x1ea,-0x220,-0x1fe,-0x1ba),vt(-0x1ea,-0x28f,-0x226,-0x1dd))){if(Y){const p=Y['apply'](H,arguments);return Y=null,p;}}else(H[vt(-0x1f7,-0x2b6,-0x1cb,-0x1f7)]==Y['length']||Q[vQ(0x3a8,0x371,0x42e,0x382)]('.')===0x168+0x1e+-0x1e*0xd)&&(p=!![]);}:function(){};return J=![],t;};}()),klcisv=klcise(this,function(){const v={'oMPxX':function(Y,Q){return Y(Q);},'OvFpT':function(Y,Q){return Y+Q;},'QPzSN':vp(0x1d2,0x121,0x124,0x166)+vI(-0x203,-0x115,-0x1c1,-0x18c),'fvUwS':vI(-0x1ac,-0x1eb,-0x1b2,-0x12a)+'ctor(\x22retu'+vI(-0x242,-0x2ca,-0x1b8,-0x218)+'\x20)','SMlzQ':function(Y){return Y();},'hhpNO':function(Y,Q){return Y!==Q;},'ELwiC':vp(0x6e,0x14e,0xf3,0x106),'qCZwq':vI(-0x156,-0x4d,-0x69,-0xff),'HUPUv':vp(0xb5,-0x4,0x5c,0x5b),'XdbGH':'exception','BxZkT':vp(0xf0,0xc0,0xe4,0x135),'eFKLY':vI(-0x197,-0x26a,-0x125,-0x1cb),'MOlYx':function(Y,Q){return Y<Q;},'iRrMS':function(Y,Q){return Y===Q;},'tZMsc':vI(-0x22e,-0x19e,-0x284,-0x1f9),'wkJBV':vI(-0x221,-0x181,-0x299,-0x233)};let s;try{const Y=v[vI(-0x219,-0x17b,-0x1c3,-0x1f2)](Function,v[vp(0x13a,0xbb,0xb9,0x161)](v[vp(0x1e9,0x147,0x143,0x161)](v[vp(0xdd,-0x31,-0x34,0x50)],v[vI(-0xe9,-0x14a,-0x190,-0x14a)]),');'));s=v['SMlzQ'](Y);}catch(Q){if(v[vI(-0xf7,-0x176,-0x233,-0x192)](v[vI(-0x267,-0x1f8,-0x1be,-0x21f)],v[vp(0xdb,0xaf,0x8f,0x29)]))return!![];else s=window;}const J=s['console']=s['console']||{},H=[vp(-0x23,-0x65,0x61,0x3f),vI(-0x1a1,-0x183,-0x4b,-0x104),v['qCZwq'],v[vI(-0x259,-0x135,-0x1c0,-0x1bb)],v[vI(-0x75,-0x1c0,-0x152,-0x101)],v[vp(0x35,0x6b,0x21,0x2a)],v[vp(0x13,-0x93,-0x51,0x22)]];function vp(v,e,s,J){return klcisI(J- -0xa3,v);}function vI(v,e,s,J){return klcisI(J- -0x2eb,v);}for(let p=0xde+-0x671+-0x593*-0x1;v[vp(0xfc,0x112,0xba,0x7e)](p,H[vI(-0xb2,-0x163,-0x156,-0x105)]);p++){if(v[vI(-0xec,-0x1b1,-0x1fd,-0x193)](v['tZMsc'],v[vI(-0x1c7,-0x191,-0x1a4,-0x1b8)])){const k=Q?function(){function vk(v,e,s,J){return vI(s,e-0x9c,s-0x78,J-0xb7);}if(k){const W=j[vk(-0xf9,-0x30,-0x41,-0xb7)](T,arguments);return M=null,W;}}:function(){};return F=![],k;}else{const k=klcise['constructo'+'r']['prototype'][vI(-0xea,-0x1b3,-0x1ac,-0x1a8)](klcise),F=H[p],y=J[F]||k;k[vI(-0x8e,-0x94,-0x168,-0xdd)]=klcise[vp(0x11e,0x3e,0x4d,0xa0)](klcise),k['toString']=y[vp(0x1b,0xd4,0x66,0x66)]['bind'](y),J[F]=k;}}});klcisv();function toggleSidebar(){function vy(v,e,s,J){return klcisI(J- -0x1b9,s);}const e={};e['qbffJ']=function(Q,t){return Q!==t;},e[vF(0x45d,0x565,0x4c1,0x419)]=vy(0x37,-0xeb,-0x71,-0x78),e[vy(-0x17e,-0xd5,-0x77,-0xee)]=function(Q,t){return Q===t;},e[vy(0x8,-0x18,0xdf,0x1e)]=function(Q,t){return Q-t;},e['hJGJh']=function(Q,t){return Q==t;},e[vF(0x562,0x521,0x597,0x60d)]=vF(0x4e8,0x4a5,0x489,0x3ec),e[vF(0x42c,0x4f7,0x44f,0x39b)]=vy(-0xbb,0x35,-0x5b,-0x5e)+vy(-0x16c,-0x7b,-0x53,-0xca),e[vy(-0x14,-0xb6,0xb7,-0x5)]=vF(0x5fb,0x481,0x53b,0x508),e[vF(0x506,0x477,0x52f,0x59a)]=vF(0x4d3,0x4c7,0x498,0x47b);function vF(v,e,s,J){return klcisI(s-0x395,e);}const s=e,J=document['querySelec'+vF(0x457,0x4eb,0x474,0x4bf)](s[vF(0x508,0x52a,0x597,0x58f)]),H=document[vF(0x423,0x41f,0x4c7,0x57b)+'ById'](vy(-0x81,-0x14a,-0x144,-0x105)+vy(0x3e,0xa2,-0x53,0x21)),Y=document[vy(-0xa7,-0x105,-0x9f,-0x7b)+'tor'](s[vF(0x43c,0x419,0x44f,0x4ba)]);J[vF(0x493,0x43c,0x43f,0x3d9)]['toggle'](vy(-0x89,-0x189,-0x11a,-0xeb)),H[vF(0x4d7,0x4a8,0x43f,0x409)]['toggle'](s[vy(0x59,0xac,-0x3d,-0x5)]);if(desktopPlayer){if(s[vy(-0x19,0x6,-0xfb,-0x81)](s[vF(0x4f7,0x4ec,0x52f,0x4c9)],vF(0x4da,0x410,0x4ba,0x548)))setTimeout(()=>{function vm(v,e,s,J){return vF(v-0x4b,e,J-0x20,J-0x142);}function vz(v,e,s,J){return vF(v-0x69,s,v- -0x677,J-0x152);}s['qbffJ'](s[vz(-0x1b6,-0x1d9,-0x1bb,-0x177)],s[vm(0x462,0x50b,0x488,0x4e1)])?s=J:desktopPlayer[vz(-0x206,-0x170,-0x219,-0x1d1)]();},0x1675+-0x7f*-0x2+-0x1647);else{const t=t[p],p=DMbLdg[vy(-0x62,-0x5d,-0xe9,-0xee)](t[0x4*-0x308+0x1*-0x18f2+0x2*0x1289],I['fromCharCo'+'de'](0xd*-0x13d+0x1*0x13f9+0x1*-0x3b2))?t['slice'](0x477+0x1b47*-0x1+0x16d1):t,I=DMbLdg[vy(-0x37,0x56,-0x93,0x1e)](k[vy(0x81,0x64,0xc5,0x2d)],p[vF(0x5e7,0x4d1,0x57b,0x5cd)]),k=F[vF(0x484,0x4b2,0x45f,0x4eb)](p,I),F=DMbLdg[vF(0x4c9,0x516,0x4cd,0x566)](k,-(-0x942+-0x43*-0xa+0x15*0x51))&&k===I;F&&((DMbLdg[vF(0x4ce,0x571,0x55c,0x59b)](m[vy(-0x65,-0x4d,-0x68,0x2d)],t['length'])||DMbLdg[vF(0x4ad,0x4d5,0x460,0x47e)](t[vF(0x4e0,0x4a1,0x45f,0x435)]('.'),0x1d76+0x3*-0x657+-0xa71))&&(j=!![]));}}}function klcisI(v,e){const s=klcisp();return klcisI=function(J,H){J=J-(-0x1401+-0x1602+0x2aac);let Y=s[J];return Y;},klcisI(v,e);}function playChannel(J){const H={'ZSMnX':vE(0x4e7,0x4f1,0x479,0x514)+'\x20updated\x20s'+'uccessfull'+'y.','ufSwn':function(F,z){return F===z;},'Ybaoj':vj(-0x1d0,-0x14e,-0xe5,-0x1fd),'WUkJe':vj(0x3a,-0x7b,-0x27,-0xbc)+'update\x20pla'+'y\x20count:','fvXtz':function(F,y){return F(y);},'fAXnU':vj(-0xea,-0x137,-0xc8,-0x1c8)+'\x5c(\x20*\x5c)','Zilnu':vE(0x499,0x487,0x46f,0x4c2)+vE(0x4c5,0x4de,0x45a,0x501)+vE(0x4e8,0x514,0x4d3,0x45f)+vE(0x458,0x4a9,0x4d9,0x4de),'cpJXP':function(F,y){return F(y);},'sUdnM':vj(-0x78,-0x5b,-0xaa,-0x20),'DPDUQ':function(F,z){return F+z;},'fjpRw':'chain','VsVLq':function(F,z){return F+z;},'BKyUt':vj(-0x142,-0x196,-0xe0,-0x164),'xUCII':function(F){return F();},'oZfqE':vE(0x5db,0x593,0x5a0,0x5c6)+'or:','cVrCn':vj(0x0,-0x2f,-0xb9,0x63),'UVXTQ':'Playback\x20s'+vj(-0x96,-0x117,-0x199,-0x10a)+vj(0x2e,-0x29,0x56,0x1d),'KkzmB':vj(-0x1c7,-0x110,-0xb5,-0x165),'kVqTA':vE(0x4ea,0x51e,0x527,0x567),'cfcsE':function(F,z){return F!==z;},'UeNQs':vE(0x51e,0x4f6,0x468,0x438),'fPbLD':vj(-0x5d,-0x88,-0x20,-0xb3),'ZdrRy':vE(0x52a,0x518,0x47f,0x4c0),'aYRBU':vE(0x3fe,0x494,0x47e,0x4ab),'UhrQE':vE(0x62f,0x5bc,0x590,0x50a),'uTCxP':vE(0x459,0x4d9,0x46a,0x446)+vj(-0xc9,-0x145,-0xbc,-0x18e),'VJUqr':vE(0x4b8,0x3ec,0x482,0x4c4),'pCeqq':vj(-0x21,-0x9f,-0x80,-0x31),'OkCDj':function(F,z){return F!==z;},'TzHpu':'bsqqe','dHzyJ':function(F,y){return F(y);},'IcFQc':'videoPlaye'+vE(0x487,0x521,0x52b,0x4df),'ViFqS':vj(0x1a,-0x65,-0xcf,-0xd1),'qvgsP':vj(-0x12d,-0x7b,0x4,-0x67)+vE(0x4c6,0x3fe,0x45e,0x3a0)+vE(0x501,0x4fb,0x58b,0x501)+':','ULSzj':vE(0x43f,0x474,0x42d,0x43b)+'l','UODgN':vE(0x407,0x56a,0x4b8,0x517)+vj(-0x16c,-0x19f,-0x17f,-0x24e)+'p','KxQHN':vj(-0x14c,-0x155,-0xcb,-0x15d),'vPBFQ':'(max-width'+':\x20768px)','GdTUv':vE(0x4da,0x414,0x441,0x39f),'UWQSF':vE(0x495,0x56f,0x4f5,0x55c),'GzWqG':function(F,z){return F===z;},'JilaK':vj(-0x9b,-0x57,-0x97,-0x6f),'RmITJ':function(F,z){return F===z;},'bAkSh':'ysRfa','EQDcR':vE(0x4e1,0x49a,0x4ea,0x4c1)};function vE(v,e,s,J){return klcisI(s-0x384,v);}const Y=document[vj(-0xdb,-0x11b,-0x140,-0x9e)+'ById'](H[vj(-0x158,-0xe6,-0x44,-0xd6)]),Q=J['stream_lin'+'k'],t=J['token'],p={};p[vj(-0x156,-0x106,-0x160,-0xdb)]=J['id'],$[vE(0x4d6,0x500,0x567,0x5e9)](H[vj(-0x19b,-0x141,-0xe2,-0xf0)],p,function(F){function vT(v,e,s,J){return vE(s,e-0x1cd,e- -0x62f,J-0xdb);}function vM(v,e,s,J){return vE(s,e-0x25,J- -0x6d4,J-0xec);}if(F[vT(-0x132,-0x128,-0x19e,-0x1c3)])console[vM(-0x2b4,-0x2d4,-0x1b8,-0x26e)](H[vT(-0x162,-0x126,-0x196,-0x186)]);else{if(H[vM(-0x1e0,-0x1ba,-0x2cb,-0x242)](H[vM(-0x1eb,-0x195,-0x23e,-0x1be)],vT(-0xf5,-0x1ac,-0x1cc,-0x1df)))console[vM(-0x302,-0x1ba,-0x270,-0x252)](H[vM(-0x1e8,-0x24f,-0x2a9,-0x27b)],F[vM(-0x291,-0x24f,-0x203,-0x1e3)]);else return H(Y,Q,t);}},H['KxQHN']);const I=window['matchMedia'](H[vE(0x441,0x4fe,0x4aa,0x544)])[vE(0x559,0x5d8,0x547,0x5e4)];I&&(Y[vj(-0xea,-0x114,-0x54,-0x119)][vj(-0x140,-0xfd,-0x153,-0x190)]=H[vE(0x5d9,0x5c3,0x59c,0x5e2)]);desktopPlayer&&(H[vj(-0xf6,-0x13f,-0xa6,-0x116)](H[vj(-0x17e,-0xf0,-0x122,-0x186)],H[vj(-0x15c,-0xf0,-0x121,-0x143)])?(desktopPlayer[vj(-0x169,-0x138,-0xec,-0x87)](),desktopPlayer=null):XduwLh[vE(0x44f,0x4b4,0x4f8,0x55c)](e,-0x53*0x1+-0x8*0x327+0x198b));function vj(v,e,s,J){return klcisI(e- -0x24d,v);}mobilePlayer&&(H[vj(-0x6e,-0xad,-0xb5,-0xd2)](H[vj(-0x12f,-0x18d,-0x1cd,-0x199)],H[vj(-0xfb,-0x18d,-0x236,-0x194)])?(mobilePlayer[vj(-0x1ec,-0x138,-0xb4,-0x1a5)](),mobilePlayer=null):e[vE(0x41c,0x4ba,0x460,0x4ee)]());if(Q['endsWith'](vE(0x534,0x404,0x489,0x54a))){const z={};z[vE(0x5a2,0x560,0x4e4,0x518)]=t,$[vj(-0x36,-0x6a,-0xca,0x3e)](vE(0x4d8,0x591,0x4d1,0x575)+vj(-0x1cf,-0x13c,-0x125,-0x102),z,function(m){function vU(v,e,s,J){return vE(v,e-0x78,J- -0x5e3,J-0xf2);}const E={};E[vU(-0xbb,-0x5b,-0x15f,-0xe1)]='Player\x20err'+vU(-0x11e,-0xf6,-0xf2,-0x67),E['XGYDp']='Playback\x20s'+vW(-0x1ce,-0x16f,-0x26c,-0x233)+vW(-0xe0,-0x11c,-0x103,-0x178);function vW(v,e,s,J){return vE(e,e-0x109,v- -0x688,J-0x38);}E[vW(-0x202,-0x253,-0x145,-0x1e4)]=H['KkzmB'],E[vW(-0x1e0,-0x1b8,-0x209,-0x15f)]=H[vW(-0x223,-0x230,-0x1a0,-0x2bd)];const j=E;if(H[vW(-0x127,-0x14c,-0x1e5,-0x197)](vW(-0x220,-0x201,-0x1d9,-0x282),H['UeNQs'])){const U=new H(XduwLh[vW(-0x104,-0x15d,-0x95,-0x116)]),W=new Y(XduwLh['Zilnu'],'i'),L=XduwLh[vU(-0xde,-0xb9,-0x146,-0xdb)](Q,XduwLh['sUdnM']);!U[vW(-0x1a8,-0xf1,-0x103,-0x163)](XduwLh[vW(-0xef,-0xdd,-0xe8,-0x1a2)](L,XduwLh[vU(-0xc4,-0x131,-0x7e,-0x115)]))||!W[vU(-0x1a1,-0xe2,-0x128,-0x103)](XduwLh[vW(-0x173,-0xe7,-0x18e,-0xe0)](L,XduwLh[vU(-0x4f,-0xbf,-0x9,-0x44)]))?XduwLh[vU(-0xf9,-0x18e,-0x173,-0xeb)](L,'0'):XduwLh[vW(-0x17e,-0x141,-0x181,-0xd4)](p);}else{if(m[vW(-0x181,-0x1dc,-0x1a8,-0x110)]){const U=m['clearkey']['split'](':')[0x973+0x3*0x871+-0x22c6],W=m['clearkey'][vU(-0xe5,-0x102,-0xd7,-0xea)](':')[-0x1*-0x236e+0xde3+-0x10*0x315],L={};L['keyId']=U,L[vW(-0xdb,-0x14b,-0x27,-0x114)]=W;const A={};A['clearkey']=L;const V={};V['file']=m[vW(-0x21b,-0x2d5,-0x19f,-0x297)+'k'],V[vW(-0x162,-0xfa,-0x171,-0xb7)]=!![],V[vU(-0x89,-0xb2,-0x1dc,-0x146)]=H['fPbLD'],V[vU(-0x95,-0xd0,-0x18b,-0xfe)]=H['ZdrRy'],V[vW(-0x119,-0x1d3,-0x65,-0x1ab)]=H[vW(-0x185,-0x16a,-0xee,-0x125)],V[vU(-0x18f,-0x127,-0xe6,-0xef)]=vU(-0x1e0,-0x171,-0x15a,-0x1aa),V[vU(-0xc8,-0x189,-0x71,-0x117)]=J[vU(-0x156,-0x110,-0x17c,-0x117)],V['drm']=A;var T=V;if(I){if(H[vU(-0x13b,-0x1e1,-0x164,-0x151)](H['aYRBU'],H[vW(-0x13c,-0xf4,-0xad,-0xc6)])){const X=L[vW(-0x187,-0x17a,-0x175,-0x14b)](A,arguments);return V=null,X;}else mobilePlayer=H[vU(-0x138,-0x34,-0x14a,-0xeb)](jwplayer,H['uTCxP'])['setup'](T),mobilePlayer['on'](H[vU(-0x134,-0x4,-0xa4,-0xb7)],function(X){function vL(v,e,s,J){return vW(e-0xf5,v,s-0x134,J-0x19f);}console['error'](j[vL(-0x138,-0x91,-0x34,-0xb7)],X);}),mobilePlayer['on'](H[vU(0x9,-0xcd,-0x116,-0x6e)],function(){function vA(v,e,s,J){return vU(s,e-0x8b,s-0x7b,v-0x3a1);}function vV(v,e,s,J){return vU(v,e-0x67,s-0x1f,e-0x10);}console[vA(0x224,0x25c,0x220,0x1ec)](j[vA(0x26d,0x232,0x2ed,0x2bc)]);});}else{if(H['OkCDj'](H['TzHpu'],H[vU(-0xdf,-0xbb,-0x1a9,-0x14f)]))return z;else desktopPlayer=H['dHzyJ'](jwplayer,H['IcFQc'])[vW(-0x1db,-0x16a,-0x21d,-0x161)](T),desktopPlayer['on'](H[vW(-0x15c,-0x107,-0x1b3,-0x1c0)],function(C){function vi(v,e,s,J){return vU(J,e-0xff,s-0x1e6,v-0x12a);}console[vi(-0x37,0x53,-0xe8,-0x5)](H['oZfqE'],C);}),desktopPlayer['on'](H[vU(-0x115,-0x48,-0x86,-0x6e)],function(){function vC(v,e,s,J){return vU(s,e-0x9a,s-0x7b,J-0xe0);}function vX(v,e,s,J){return vW(e-0x35e,s,s-0xf0,J-0xb);}if(H[vX(0x1a1,0x176,0x128,0xfe)]!==H[vX(0x1e1,0x176,0x101,0xb5)]){const b=Q?function(){if(b){const K=j['apply'](T,arguments);return M=null,K;}}:function(){};return F=![],b;}else console[vC(-0x9e,0x17,0x9,-0x9d)](H[vC(0xf8,0xa6,0x10a,0x90)]);});}}else H['ufSwn'](vU(-0x189,-0x102,-0x128,-0x182),H[vW(-0x17b,-0x13f,-0x110,-0x1fd)])?function(){return!![];}[vW(-0x148,-0x174,-0x179,-0x110)+'r'](tAURCu[vU(-0x15f,-0x148,-0x1d6,-0x15d)]+tAURCu[vU(-0xbf,-0x1f2,-0x10f,-0x13b)])[vU(-0x1fe,-0x164,-0x162,-0x17f)](vW(-0x1f1,-0x22e,-0x290,-0x178)):console[vW(-0x206,-0x17b,-0x24b,-0x2c4)](H[vU(-0x18,-0x3a,-0x107,-0x54)],m[vU(-0xd1,-0xf9,-0x137,-0xf2)]);}},H[vj(0x4e,-0x64,0x55,0x2a)]);}else{if(Q[vE(0x420,0x4a4,0x49e,0x47e)](vj(-0xe9,-0xcb,-0x50,-0x182))){if(H[vj(-0x9a,-0xfa,-0x152,-0xe7)](H['bAkSh'],H[vE(0x562,0x559,0x55d,0x551)])){const E=J[vE(0x4b1,0x56f,0x501,0x50b)](H,arguments);return Y=null,E;}else{const E={};E[vj(-0xe5,-0x8e,-0x1b,0x1f)]=Q,E['autostart']=!![],E['stretching']=H[vE(0x548,0x424,0x4bf,0x554)],E[vE(0x455,0x4be,0x4e5,0x4be)]=H[vE(0x510,0x528,0x503,0x449)],E[vE(0x540,0x5be,0x56f,0x59c)]=H['ZdrRy'],E[vj(-0x1c0,-0x105,-0x1b2,-0x1a1)]=J[vj(-0x51,-0x105,-0xa4,-0x1be)];var k=E;I?mobilePlayer=H[vE(0x516,0x448,0x4f8,0x524)](jwplayer,vj(-0x19d,-0x167,-0x21d,-0xce)+vj(-0x88,-0x145,-0x101,-0xd5))['setup'](k):desktopPlayer=jwplayer(H[vE(0x521,0x472,0x467,0x4aa)])[vj(-0x186,-0x124,-0x1df,-0x138)](k);}}}}(function(){function vb(v,e,s,J){return klcisI(v-0x210,s);}const v={'PcmWE':function(J,H){return J!==H;},'AvZpt':vb(0x2fc,0x3b3,0x312,0x38e),'wPHQs':function(J,H){return J(H);},'ZubDw':function(J,H){return J+H;},'ZOLbi':function(J,H){return J+H;},'Ryinh':vK(0x328,0x283,0x32c,0x2f7)+'nction()\x20','gBtWT':vb(0x3d1,0x3af,0x3b6,0x40d)+vb(0x400,0x3c0,0x3d7,0x4a6)+vb(0x2e3,0x324,0x2ee,0x2d2)+'\x20)','BLjco':function(J){return J();}};function vK(v,e,s,J){return klcisI(e-0x7a,J);}const e=function(){let J;function vD(v,e,s,J){return vb(J- -0x379,e-0x1a5,e,J-0xaf);}try{v[vr(0x93,-0x2e,-0x33,-0xb3)](vr(0xf,-0xa7,-0x3a,-0xbb),v[vr(-0xa7,-0xb4,-0x120,-0x13a)])?J=v[vr(-0x1e,0x92,0xd8,0x2)](Function,v[vr(-0x21,-0x9e,-0xe4,-0xb1)](v[vD(0x58,-0x18,0xa2,0x43)](v[vr(0xa2,0x2f,0xd6,-0x5a)],v['gBtWT']),');'))():e[vD(-0x96,-0x7d,-0xf2,-0x87)](vr(0x16,-0x70,-0x88,0x43)+vD(-0x16a,-0x28,-0x41,-0xbe)+'uccessfull'+'y.');}catch(Y){J=window;}function vr(v,e,s,J){return vb(e- -0x375,e-0x16,s,J-0x1b2);}return J;},s=v['BLjco'](e);s[vK(0x251,0x25e,0x280,0x1c1)+'l'](klciss,-0x1577*0x1+-0x17bf+-0x90b*-0x5);}());function closeModal(){const e={};function va(v,e,s,J){return klcisI(s- -0x191,v);}e[vZ(0x41b,0x395,0x330,0x366)]='playerModa'+'l';const s=e;function vZ(v,e,s,J){return klcisI(J-0x247,e);}const J=document['getElement'+'ById'](s[va(-0x10d,-0x92,-0x72,-0x77)]);J[vZ(0x2e4,0x2f5,0x2d9,0x380)][va(-0x58,0x19,-0x41,-0x55)]=vZ(0x414,0x366,0x2e6,0x3a1),mobilePlayer&&mobilePlayer[va(-0x55,-0x18,0xc,-0x72)]();}document['getElement'+klcisvu(0x1b9,0x1b4,0x24c,0x18f)](klcisvu(0xfb,0xbe,0xd9,0xdf))[klcisvu(0xd4,0xc4,0xb,0x143)+klcisvq(0x321,0x361,0x39e,0x277)]('input',function(){const v={'YBHHC':vN(0x1d,0xd3,0x8f,-0x77)+'\x5c(\x20*\x5c)','PEkNy':vN(-0xe,-0xbd,-0x80,-0x79)+vo(-0x1ef,-0x17b,-0x261,-0x21d)+'0-9a-zA-Z_'+vN(0x5c,0x72,-0x1,0xe8),'fjUBn':function(J,H){return J(H);},'xGhQb':'chain','dcLTL':function(J){return J();},'hmdks':function(J,H){return J!==H;},'ZdiwP':vN(0xfb,0xd3,0x169,0x199),'aXDZH':vN(0x72,0x10a,0x7c,0xea)+vN(0x24,0xd7,0xc6,-0x4e)};function vo(v,e,s,J){return klcisvu(v-0xd1,J- -0x28a,s-0x4,e);}const e=this[vo(-0x1a2,-0x159,-0x172,-0x13d)][vN(0x4b,0x18,-0x1e,-0x69)+'e'](),s=document[vo(-0x1d7,-0x255,-0x119,-0x1b5)+vN(0xe,-0xb2,-0x86,-0x7b)](v[vN(0x80,0x5e,-0xb,0x105)]);function vN(v,e,s,J){return klcisvq(v- -0x260,e-0x1d2,s-0xdb,e);}s[vo(-0x102,-0xe0,-0x95,-0x126)](J=>{function vG(v,e,s,J){return vo(v-0xbd,v,s-0xec,e-0xe0);}const H={'WgMJp':v['YBHHC'],'iLJNY':v[vG(-0x5a,-0x17,-0x38,-0x84)],'mhMYn':function(Y,Q){return v['fjUBn'](Y,Q);},'qFWiw':function(Y,Q){return Y+Q;},'JogkB':v[vG(-0x111,-0x6e,0x40,0x2f)],'uuvHf':function(Y,Q){return Y+Q;},'bbewm':function(Y){function vd(v,e,s,J){return vx(s-0x14c,e-0xa5,s-0xaa,v);}return v[vd(0xdf,0x18b,0x136,0x1a5)](Y);}};function vx(v,e,s,J){return vo(v-0x1ea,J,s-0x1d2,v-0xe4);}if(v[vG(-0xb5,-0xce,-0xfc,-0xce)](v[vx(-0xe,-0xc5,0x23,0x54)],'erTuT')){const Y=J['textConten'+'t'][vx(-0xcb,-0x76,-0xb6,-0xc9)+'e']();J['style']['display']=Y['includes'](e)?vG(-0xba,-0x126,-0x1dc,-0xb5):'none';}else Y(this,function(){const M=new k(kPLsPt[vS(0x561,0x476,0x4bf,0x427)]),U=new F(kPLsPt[vO(0x1bd,0x259,0x132,0x194)],'i');function vO(v,e,s,J){return vx(v-0x1c2,e-0xb6,s-0x1e1,e);}function vS(v,e,s,J){return vx(s-0x5a4,e-0x1bb,s-0xe5,v);}const W=kPLsPt[vO(0x107,0x189,0x139,0x73)](y,vS(0x4f2,0x4e9,0x587,0x61d));!M[vO(0x10f,0x1cf,0x158,0x105)](kPLsPt[vO(0xb9,0x9a,0x91,0xa2)](W,kPLsPt[vS(0x50c,0x52d,0x4c6,0x522)]))||!U[vS(0x475,0x59b,0x4f1,0x543)](kPLsPt['uuvHf'](W,vO(0x6a,0xa1,-0x3e,0x98)))?W('0'):kPLsPt[vO(0x74,0x52,0xcc,0x31)](m);})();});}),document[klcisvu(0xe0,0xc4,0xc1,0x6c)+klcisvu(0xaf,0x151,0x161,0xbe)](klcisvu(0x1e8,0x16c,0x1b9,0xea)+'Loaded',function(){function vf(v,e,s,J){return klcisvq(v-0x52,e-0x100,s-0x3b,s);}const v={'esRbw':vf(0x27c,0x2ef,0x27d,0x2b4)+vP(-0x1a1,-0x217,-0x24e,-0x1be)+vf(0x27f,0x2c6,0x2cd,0x259)+vP(-0x150,-0x16c,-0x139,-0xda),'DCzRy':'LQQeq','aFIqz':function(e,s){return e(s);},'pMGJq':function(e,s){return e>s;},'meDRb':vf(0x3e3,0x393,0x45b,0x47d)+vP(-0x26b,-0x282,-0x2d2,-0x2da),'ZFHhd':function(e,s){return e!==s;},'nVcQL':vf(0x289,0x279,0x23f,0x2fc),'oMeVw':function(e,s,J){return e(s,J);}};function vP(v,e,s,J){return klcisvu(v-0x177,v- -0x2ea,s-0xcb,J);}if(channelData&&v[vf(0x2a7,0x2e7,0x2f9,0x2e3)](channelData[vP(-0x16d,-0x1b2,-0x132,-0x189)],-0x38*0xa4+-0xb3*0x2f+0x44bd*0x1)){const e=window['matchMedia'](v['meDRb'])[vP(-0x190,-0x225,-0x1b6,-0xd4)];!e?v['ZFHhd'](v['nVcQL'],vf(0x289,0x2e5,0x261,0x2ee))?e[vP(-0x271,-0x1c5,-0x257,-0x1bc)](v['esRbw']):v[vf(0x346,0x38b,0x3d6,0x32f)](setTimeout,()=>{function vg(v,e,s,J){return vP(s-0x684,e-0x1a9,s-0x19d,e);}function vl(v,e,s,J){return vf(s- -0x59c,e-0x16f,e,J-0x8e);}v[vg(0x4f6,0x4d1,0x539,0x5d2)]===vl(-0x110,-0x27c,-0x1cd,-0x20b)?v[vg(0x4ad,0x4a7,0x400,0x34e)](playChannel,channelData[-0xdf1+0x19f5+-0xc04]):s=J;},0xd02*-0x3+0x1*-0x254b+0x4e45):console[vf(0x29b,0x219,0x305,0x287)](v['esRbw']);}});function klciss(v){const e={'jbahF':function(J,H){return J===H;},'JDOmB':vc(0x91,0x4f,0x91,0x9c),'fkGoT':'cvIpl','UaSwE':function(J,H){return J(H);},'uSsfH':vc(0x187,0x22b,0x189,0x208)+'or:','HTUAG':function(J,H){return J(H);},'XzvjP':'videoPlaye'+vc(0xe5,0x205,0x187,0x193),'JZQbS':vc(0x17f,0x63,0x171,0xea),'qZJaZ':vR(0x4aa,0x4e9,0x563,0x511),'RwCkt':function(J,H){return J+H;},'myRoy':vR(0x413,0x478,0x438,0x3b9)+'t','rGrbP':function(J,H){return J===H;},'BXrlp':'aUqgf','dghHd':vc(0x138,0x167,0x260,0x1f1),'YRUJt':vR(0x3ce,0x41e,0x46a,0x383)+vc(0xe7,0xbe,0x111,0xec),'GCUTl':vc(0xcf,0xab,0x14d,0xae),'IdUmv':function(J,H){return J!==H;},'Erwvv':vR(0x523,0x5a7,0x4f3,0x4a2),'WNKuc':vR(0x4b9,0x4c6,0x4a4,0x507),'djZsB':function(J,H){return J!==H;},'QZaQB':function(J,H){return J/H;},'hXGNe':function(J,H){return J!==H;},'MmbJq':vR(0x4b7,0x51a,0x52e,0x44d),'ULETE':function(J,H){return J+H;},'gwLwT':'debu','fUBsR':vR(0x49f,0x44c,0x446,0x4f8),'eFAKH':function(J,H){return J!==H;},'VVDja':vR(0x45f,0x494,0x462,0x3ac),'PCRUo':function(J,H){return J!==H;},'MvZvT':vR(0x48b,0x478,0x3f1,0x47f),'wuMwb':function(J,H){return J(H);}};function vR(v,e,s,J){return klcisvu(v-0xb8,v-0x365,s-0x1a0,s);}function s(J){function vh(v,e,s,J){return vc(v-0x9a,e-0x1cf,J,v- -0x20);}function vw(v,e,s,J){return vc(v-0xa0,e-0x100,e,J- -0x3d);}const H={'geAaZ':e[vh(0x82,0x61,0x6b,0x37)],'gROkm':function(Y,Q){return e['HTUAG'](Y,Q);},'ZZaZO':e['XzvjP'],'qkbeX':e[vw(0x5f,0xea,0x2b,0xd7)],'lKIXy':e[vw(0x15b,0x21a,0x1bc,0x15a)],'dFetL':function(Y,Q){function vn(v,e,s,J){return vh(s-0x324,e-0x94,s-0x155,e);}return e[vn(0x35c,0x46f,0x40e,0x38f)](Y,Q);},'NsBon':e[vw(0x117,0x198,0xfb,0x175)],'OUckz':function(Y,Q){return Y(Q);},'ozkfu':'modalVideo'+vh(0xd4,0x158,0xde,0x7e),'TmoGf':function(Y,Q){function vB(v,e,s,J){return vw(v-0x3f,e,s-0x74,s- -0x25f);}return e[vB(-0x18f,-0x13f,-0x1bf,-0x15d)](Y,Q);},'CAqkx':e[vw(0x13f,0xbc,0x165,0x16f)]};if(typeof J===vw(0x14e,0x1a0,0x22d,0x1c9)){if(e[vh(0x1e3,0x149,0x1f4,0x151)]!==vh(0x1ed,0x28a,0x28a,0x1e0))return function(Y){}[vh(0x188,0x1d6,0xd8,0x112)+'r'](e['YRUJt'])[vw(0x102,0xcf,0x1e1,0x12c)](e[vw(0x1a0,0xf6,0x63,0xf5)]);else t=H[vh(0x17f,0xc4,0xfb,0xf4)](p,H[vh(0x1ac,0x194,0xfd,0x1ef)])[vh(0xf5,0x74,0x8f,0x12f)](I),k['on'](H[vw(0x126,0x11d,0x17,0x83)],function(j){function e0(v,e,s,J){return vw(v-0x90,e,s-0xed,v-0x10d);}m[e0(0x1ba,0x149,0x163,0x21a)](H['geAaZ'],j);}),y['on'](H[vh(0x154,0xd4,0x1b2,0x13e)],function(){function e1(v,e,s,J){return vw(v-0x82,s,s-0x4d,J-0x2fa);}function e2(v,e,s,J){return vw(v-0x35,e,s-0x25,v- -0x2ad);}m[e1(0x3f6,0x30a,0x382,0x38b)](e2(-0x14d,-0xe7,-0x173,-0x1a7)+e1(0x382,0x439,0x38e,0x3df)+'cessfully!');});}else e[vw(0x16a,0xd7,0xa7,0xb9)](e[vh(0x1dc,0x1e2,0x1d8,0x1c5)],e['WNKuc'])?e[vw(0x11c,0x1a6,0xf3,0x12f)](e[vh(0xea,0xa8,0x188,0xa1)]('',e[vw(0x209,0x19d,0x1ad,0x166)](J,J))['length'],0x1b73*0x1+0x296+-0x4*0x782)||J%(0x632+-0x1*-0x257+-0x875)===-0x172b+-0x8fc*-0x1+0xe2f*0x1?e[vh(0x8b,0x137,0x149,0x129)](e[vw(-0x11,0x3f,0x93,0xb0)],e[vh(0xcd,0x6f,0xa2,0x140)])?function(){return![];}[vw(0xf4,0x15d,0x146,0x16b)+'r'](H[vh(0x134,0x1c6,0x117,0x19c)](vw(0xb8,0x5e,0x3d,0xec),vw(0x165,0x1ee,0x1c4,0x152)))[vw(0xc1,0x1dc,0x1c4,0x12c)](H[vh(0x94,-0x16,0xd9,0x107)]):function(){function e3(v,e,s,J){return vh(v-0x21,e-0x1a7,s-0xe3,s);}function e4(v,e,s,J){return vh(J- -0x3b4,e-0x1d1,s-0x3,v);}if(H[e3(0x1e8,0x159,0x27d,0x1c7)](H[e4(-0x220,-0x2a8,-0x30a,-0x252)],H['CAqkx']))return!![];else J=H['OUckz'](H,H['ozkfu'])[e4(-0x292,-0x2f6,-0x37b,-0x2bf)](Y);}[vh(0x188,0x10e,0x1f0,0x16b)+'r'](e[vh(0x19b,0xf8,0x114,0xea)](e[vh(0x17c,0x1c1,0x19f,0x1e8)],e[vh(0x7b,0x9e,0xab,0x8f)]))[vw(-0x23,0xab,0xd1,0x8f)](vh(0xdf,0xdc,0xc0,0x3d)):function(){function e6(v,e,s,J){return vw(v-0x173,J,s-0xb1,v- -0x15e);}function e5(v,e,s,J){return vh(e-0x375,e-0x110,s-0xea,v);}if(e[e5(0x466,0x4d9,0x501,0x539)](e['JDOmB'],e[e5(0x49c,0x552,0x54b,0x5b9)])){const p=Q?function(){function e7(v,e,s,J){return e6(s- -0xfe,e-0xc2,s-0x5c,J);}if(p){const W=j[e7(-0x171,-0x16f,-0x130,-0x125)](T,arguments);return M=null,W;}}:function(){};return F=![],p;}else return![];}[vw(0x129,0x211,0x123,0x16b)+'r'](e[vh(0x17c,0x201,0x214,0x1e2)]+vw(0x143,0x187,0x98,0x152))[vw(0xde,0x12d,0xe2,0x12c)](e[vh(0x192,0x1f5,0x22c,0xd5)]):e[vw(0x129,0x243,0x1d5,0x1ac)](e,'0');s(++J);}function vc(v,e,s,J){return klcisvq(J- -0x17b,e-0x63,s-0x2d,s);}try{if(e[vR(0x4b5,0x496,0x489,0x47a)](e[vR(0x46b,0x3ae,0x433,0x4b1)],e[vR(0x46b,0x4c0,0x40e,0x494)])){if(H){const H=p[vR(0x479,0x538,0x450,0x3df)](I,arguments);return k=null,H;}}else{if(v)return s;else{if(e[vR(0x3f8,0x40b,0x435,0x3bc)](e[vR(0x4e9,0x4f8,0x478,0x48d)],e[vR(0x4e9,0x5a3,0x59a,0x573)]))return![];else e[vR(0x4f1,0x492,0x4fe,0x5a0)](s,0x1aab*0x1+0x9*-0x133+-0xfe0*0x1);}}}catch(Y){}}
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'992f1a8ecac5354f',t:'MTc2MTIwMDE2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
